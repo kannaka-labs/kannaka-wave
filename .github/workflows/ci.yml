@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: fmt
+        run: cargo fmt --check
+      - name: clippy (warnings are errors; the crate suppresses no lints)
+        run: cargo clippy --all-targets -- -D warnings
+      - name: test
+        run: cargo test
+      - name: no dependencies yet, on purpose
+        run: |
+          set -eu
+          deps=$(sed -n '/^\[dependencies\]/,/^\[/p' Cargo.toml | grep -E '^\s*[a-zA-Z0-9_-]+\s*=' || true)
+          if [ -n "$deps" ]; then
+            echo "Cargo.toml grew a dependency. ADR-0001 says the first thing this crate must say is what it is, with nothing downloaded. If that has changed, change the ADR in the same PR."
+            echo "$deps"
+            exit 1
+          fi
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: every experiment pre-registers a decision rule
+        run: |
+          set -eu
+          rc=0
+          for f in docs/experiments/E-*.md; do
+            if ! grep -qiE '^## Decision rule' "$f"; then echo "FAIL $f has no '## Decision rule' section"; rc=1; else echo "ok   $f"; fi
+          done
+          exit $rc
+      - name: the ADR still names every organ the crate exports
+        run: |
+          set -eu
+          for organ in Substrate Voice Rails Encoder; do
+            grep -q "pub trait $organ" src/lib.rs || { echo "FAIL src/lib.rs lost trait $organ"; exit 1; }
+            grep -qi "$organ" docs/adr/ADR-0001-kannaka-wave.md || { echo "FAIL ADR-0001 no longer mentions $organ"; exit 1; }
+          done
+          echo "ok   four organs, in code and in the decision"

@@ -1,0 +1,15 @@
+[package]
+name = "kannaka-wave"
+version = "0.0.1"
+edition = "2021"
+description = "Kannaka Wave — an AI built from the ground up on the Holographic Resonance Medium, with the language model as an organ"
+license = "SEE LICENSE IN LICENSE"
+repository = "https://github.com/kannaka-labs/kannaka-wave"
+publish = false
+
+[dependencies]
+# None yet. The first thing this crate must be able to say is what it is,
+# and it should be able to say it with `cargo test` and nothing downloaded.
+
+[lints.rust]
+unsafe_code = "forbid"
