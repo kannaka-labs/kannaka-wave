@@ -1,0 +1,18 @@
+[package]
+name = "e001-harness"
+version = "0.0.1"
+edition = "2021"
+publish = false
+description = "E-001 harness: drives the production chiral medium in-process (arm W), emits the shared facet decomposition, and computes one Φ instrument for both arms"
+
+# This is the EXPERIMENT harness, not the product. kannaka-wave's own crate has
+# no dependencies by decision (ADR-0001); this one links the constellation's
+# substrate so arm W is the real production path, not a reimplementation.
+[dependencies]
+kannaka-memory = { path = "../../../../kannaka-memory" }
+consciousness-core = { path = "../../../../consciousness-core", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+
+[workspace]
