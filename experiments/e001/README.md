@@ -56,6 +56,23 @@ every real memory at similarity 1.0. Under production defaults they do not.
 E-001 runs with production defaults, which means arm W's recall here is not
 directly comparable to the 0.62 on record; the report says so.
 
+**4. The production deep dream does not scale past about a thousand rows.**
+`KannakaMemorySystem::dream()` is five phases, and phase 2 is the legacy
+particle consolidation: `stage_detect` and its siblings, pairwise over every
+row in 10k dimensions, the pipeline ADR-0022 diagnosed as "waves snap to
+particles when observed". At 1,950 rows one dream ran for more than 26 minutes
+of a core on debain2 without finishing. Thirty per seed on a store that grows
+to 4,000 rows is not runnable, and it is not the waves. Arm W therefore dreams
+phases 1, 3 and 4 — `dream_native` (3 cycles, temperature 1.0, the engine's
+default chiral perturbation 0.0), callosal Kuramoto coupling, the lite chiral
+pass — which is exactly the "annealing + Ξ cross-callosal step" the spec names.
+Every run's JSON records this; `--dream deep` restores the full dream.
+
+Also on the write path: `remember_with_category` flushes the whole store to
+disk after every row, 150–200 MB at this size. Invisible in production, where
+the CLI absorbs one row per process; 2.6 s per row in a loop. The harness
+absorbs through the engine's store directly and saves once.
+
 One more property, mirrored rather than fixed: **facets outlive their parents
 under triage.** A distractor's facets are stored as plain rows whose text does
 not start with `distractor:`, so the retention rule never matches them. Both
