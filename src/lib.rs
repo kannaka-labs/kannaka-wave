@@ -5,15 +5,22 @@
 //! `docs/archaeology/README.md` for where every idea here came from and what was
 //! measured about it. This crate commits to **interfaces** before implementations:
 //! the organs are traits (four in ADR-0001, a fifth in ADR-0002). E-001 decided
-//! on 2026-09-09 that the waves lose: the substrate is a plain vector store with
-//! the voice's encoder, atomic facets and a stated forgetting policy. The chiral
-//! number system that was here is in `docs/lineage/`, out of the build.
+//! on 2026-09-09 that the waves lose, and the substrate is written to that
+//! verdict: [`store::VectorStore`] with the voice's encoder
+//! ([`encoder::OllamaEncoder`]), atomic facets ([`facet::decompose`]) and a
+//! stated forgetting policy ([`Retention`]). The chiral number system that was
+//! here is in `docs/lineage/`, out of the build.
 //!
-//! No dependencies yet. That is deliberate: the first thing this crate must be
-//! able to say is what it is, and it should be able to say it with `cargo test`.
+//! No dependencies. The encoder speaks HTTP over `std::net`; the store's file
+//! format is its own. The first thing this crate must be able to say is what
+//! it is, and it says it with `cargo test` and nothing downloaded.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
+
+pub mod encoder;
+pub mod facet;
+pub mod store;
 
 /// A stable identifier for anything that persists. Never a string chosen by a
 /// wire peer (ADR-0039): the substrate assigns it.
@@ -34,12 +41,18 @@ pub struct Facet {
     pub parent: Option<Id>,
 }
 
-/// A recalled facet with the numbers that justify it, named for what they are.
+/// A recalled memory with the numbers that justify it, named for what they
+/// are. Recall resolves facets to their parent (ADR-0049), so `id` and `text`
+/// are the parent's and `via` names the facet that carried it, if one did.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Recalled {
-    /// Which facet.
+    /// The parent (or a row with no parent).
     pub id: Id,
-    /// Cosine in the encoder's space, in `[0, 1]`.
+    /// Its full text, so the voice can speak from it.
+    pub text: String,
+    /// The facet whose vector scored, when it was not the parent itself.
+    pub via: Option<Id>,
+    /// Cosine in the encoder's space, clamped to `[0, 1]`.
     pub similarity: f32,
     /// Constructive-interference magnitude, **unbounded**. Absent from a
     /// substrate that has no waves, which is what E-001 decided the substrate
@@ -82,8 +95,9 @@ pub trait Encoder {
 
 /// Organ 1. The substrate decides what persists. Both E-001 arms implement this.
 pub trait Substrate {
-    /// Absorb one facet, already encoded. Returns the substrate-assigned id.
-    fn absorb(&mut self, facet: Facet, vector: Vector) -> Id;
+    /// Absorb one row, already encoded, with its importance in `[0, 1]`.
+    /// Returns the substrate-assigned id.
+    fn absorb(&mut self, facet: Facet, vector: Vector, importance: f32) -> Id;
     /// Recall against a question, never against a prompt.
     fn recall(&self, question: &Vector, top_k: usize) -> Vec<Recalled>;
     /// One dream: consolidate, let the voice propose, forget per policy.
@@ -181,6 +195,8 @@ mod tests {
     fn a_recalled_row_names_its_numbers_honestly() {
         let r = Recalled {
             id: Id(1),
+            text: "a parent".into(),
+            via: None,
             similarity: 0.76,
             resonance: None,
         };

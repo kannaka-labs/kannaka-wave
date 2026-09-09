@@ -148,9 +148,16 @@ waves, and that is still Kannaka.
 
 ## Status of work
 
-- `src/chiral_scale.rs` — the number system as a type, with the bilateral invariant and
-  the asymmetry ratio, tested. First commit.
-- `src/lib.rs` — the four organs as traits, so the interfaces are committed before any
-  implementation is.
-- `docs/experiments/E-001` — the first experiment, pre-registered.
-- Everything else waits on E-001.
+- `src/lib.rs` — the organs as traits; interfaces committed before implementations.
+- `docs/experiments/E-001` — run 2026-09-08/09; the waves lose. `docs/lineage/` holds
+  what that moved out of the build (the chiral scale type).
+- **The substrate, written to the verdict (2026-09-09):** `src/store.rs`
+  (`VectorStore`: arm V's semantics in Rust, plus time-to-live and
+  parent-owns-its-facets; versioned, checksummed, one-way-safe persistence),
+  `src/facet.rs` (ADR-0049's decomposer ported verbatim from kannaka-memory, the pure
+  function E-001's facets came from), `src/encoder.rs` (`OllamaEncoder` over
+  `std::net`, unit-normalised, size-checked). The voice's one entry into the substrate
+  exists as `dream_with`: a proposal is absorbed only under a retention row that bounds
+  it. No dependencies.
+- Next: the voice (organ 2) against this store; E-003 (rails) and E-004 (the world
+  organ's salience) as pre-registered.

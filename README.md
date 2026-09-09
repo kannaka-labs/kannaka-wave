@@ -38,6 +38,12 @@ experience → facets → substrate → dream (consolidate, propose, forget)
 ## What is here
 
 - `src/lib.rs` — the organs as traits. Interfaces are committed before implementations.
+- `src/store.rs`, `src/facet.rs`, `src/encoder.rs` — **the substrate**, written to
+  E-001's verdict: a vector store with arm V's measured semantics (cosine, facets
+  resolved to parents, one recall per family, promotion at three hits, per-class caps
+  and time-to-live), the ADR-0049 decomposer ported from kannaka-memory, and an ollama
+  encoder over `std::net`. Persistence is versioned and checksummed; a newer file is
+  refused, never guessed at. Still no dependencies.
 - `docs/experiments/E-001` — whether the waves earn their keep, against a plain vector
   store with the same encoder, facets and forgetting policy. **Run; the waves lose**
   (recall@10 on zero-overlap probes 0.24 against 0.58, Φ equal, ten seeds). The
