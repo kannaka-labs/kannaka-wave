@@ -10,7 +10,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
+
+# Windows consoles default to cp1252; the report prints Δ and ±. Say utf-8.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 
 def rows(tsv: Path) -> list[dict]:

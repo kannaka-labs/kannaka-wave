@@ -34,6 +34,13 @@ import time
 import urllib.request
 from pathlib import Path
 
+# Windows consoles default to cp1252; the report prints Δ and ±. Say utf-8.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from arm_v import run_arm_v  # noqa: E402
 
