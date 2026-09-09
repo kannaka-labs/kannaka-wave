@@ -48,8 +48,14 @@ from arm_v import run_arm_v  # noqa: E402
 # Windows Python decodes child output as cp1252 by default; the facet and
 # recall JSON carry UTF-8, and a stray 0x8d kills the reader thread and hands
 # back stdout=None. Every subprocess call here says utf-8 explicitly.
-KANNAKA = Path.home() / ".local" / "bin" / "kannaka.exe"
-HARNESS = Path(os.environ.get("E001_HARNESS", r"C:\Users\nickf\Source\kannaka-memory\target\release\e001-harness.exe"))
+# Both binaries are overridable so the same orchestrator runs on the Linux box
+# (E-001 moved to debain2 after this Windows box's memory watchdog killed the
+# prepare step twice at 86% system load).
+_WIN = os.name == "nt"
+KANNAKA = Path(os.environ.get("E001_KANNAKA", str(Path.home() / ".local" / "bin" / ("kannaka.exe" if _WIN else "kannaka"))))
+HARNESS = Path(os.environ.get("E001_HARNESS",
+                              r"C:\Users\nickf\Source\kannaka-memory\target\release\e001-harness.exe" if _WIN
+                              else str(Path.home() / "e001" / "src" / "kannaka-memory" / "target" / "release" / "e001-harness")))
 OLLAMA = os.environ.get("E001_OLLAMA", "http://localhost:11434")
 MODEL = "mxbai-embed-large"
 DIM = 1024
