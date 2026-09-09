@@ -257,7 +257,7 @@ fn main() {
                     r.recalled,
                     facets,
                     r.importance,
-                    one_line(&r.text, 300)
+                    one_line(r.text, 300)
                 );
             }
         }
