@@ -44,6 +44,11 @@ experience → facets → substrate → dream (consolidate, propose, forget)
   and time-to-live), the ADR-0049 decomposer ported from kannaka-memory, and an ollama
   encoder over `std::net`. Persistence is versioned and checksummed; a newer file is
   refused, never guessed at. Still no dependencies.
+- `src/voice.rs`, `src/adoption.rs`, `src/bin/wave.rs` — **the voice**: stateless
+  over ollama, querying the substrate only with a pure reduction of the prompt to its
+  question, entering it only through a gated dream proposal, replaced only when a
+  judge with controls and an external evaluator agree. `wave remember | ask | dream |
+  status` runs it from a shell.
 - `docs/experiments/E-001` — whether the waves earn their keep, against a plain vector
   store with the same encoder, facets and forgetting policy. **Run; the waves lose**
   (recall@10 on zero-overlap probes 0.24 against 0.58, Φ equal, ten seeds). The

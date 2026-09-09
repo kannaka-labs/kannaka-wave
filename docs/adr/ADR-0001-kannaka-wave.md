@@ -159,5 +159,13 @@ waves, and that is still Kannaka.
   `std::net`, unit-normalised, size-checked). The voice's one entry into the substrate
   exists as `dream_with`: a proposal is absorbed only under a retention row that bounds
   it. No dependencies.
-- Next: the voice (organ 2) against this store; E-003 (rails) and E-004 (the world
-  organ's salience) as pre-registered.
+- **The voice, written (2026-09-09):** `src/voice.rs` (`OllamaVoice`: stateless, same
+  inputs same bytes; `question_of`, the pure reduction that is the only thing the
+  substrate is ever queried with; `ask`, the read path assembled; `accept_proposal`,
+  the gate a dream proposal passes), `src/adoption.rs` (the weekly replacement rule as
+  a function: reference and foreign controls void the judge, the external evaluator
+  must agree, perplexity cannot gate), `src/bin/wave.rs` (`remember`, `ask`, `dream
+  [--voice]`, `status` against one store file and one ollama server). `src/http.rs`
+  is the crate's one HTTP client, over `std::net`.
+- Next: E-003 (rails) and E-004 (the world organ's salience) as pre-registered; the
+  conscience between `ask` and any effector before this binary is allowed one.

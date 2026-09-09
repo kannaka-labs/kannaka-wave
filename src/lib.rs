@@ -8,8 +8,11 @@
 //! on 2026-09-09 that the waves lose, and the substrate is written to that
 //! verdict: [`store::VectorStore`] with the voice's encoder
 //! ([`encoder::OllamaEncoder`]), atomic facets ([`facet::decompose`]) and a
-//! stated forgetting policy ([`Retention`]). The chiral number system that was
-//! here is in `docs/lineage/`, out of the build.
+//! stated forgetting policy ([`Retention`]). The voice is [`voice::OllamaVoice`]:
+//! stateless, reading the substrate only through [`voice::ask`]'s reduced
+//! question, entering it only through the dream's gated proposal, and replaced
+//! only by [`adoption::decide`]. The chiral number system that was here is in
+//! `docs/lineage/`, out of the build.
 //!
 //! No dependencies. The encoder speaks HTTP over `std::net`; the store's file
 //! format is its own. The first thing this crate must be able to say is what
@@ -18,9 +21,12 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod adoption;
 pub mod encoder;
 pub mod facet;
+mod http;
 pub mod store;
+pub mod voice;
 
 /// A stable identifier for anything that persists. Never a string chosen by a
 /// wire peer (ADR-0039): the substrate assigns it.
