@@ -9,7 +9,7 @@ it.
 
 1. [`docs/adr/ADR-0001-kannaka-wave.md`](docs/adr/ADR-0001-kannaka-wave.md) — the
    decision: four organs, one loop, and the one experiment that runs before anything
-   else is built.
+   else is built. ADR-0002 adds a fifth organ, the world.
 2. [`docs/archaeology/README.md`](docs/archaeology/README.md) — the dig. Every concept
    from the constellation (the `dx/dt` equation, the chiral hemispheres, the
    `10000.00001` number system, the bridge operator `Ξ = [R, G]`, belief spiral math,
@@ -22,7 +22,7 @@ it.
 
 | organ | what it is | comes from |
 |---|---|---|
-| Substrate | a chiral holographic medium that decides what persists; encoded by the voice's embeddings, written as atomic facets, dreamed with triage | kannaka-memory ADR-0020/0021/0024/0049/0054 |
+| Substrate | decides what persists: the voice's embeddings, atomic facets, a stated forgetting policy, in a plain vector store. E-001 (2026-09-09) measured the chiral wave medium against exactly that and the medium lost; it is in `docs/lineage/` | kannaka-memory ADR-0049/0054; E-001 |
 | Voice | an open-weight model on her own words, stateless, reading the substrate through `recall(question)` and entering it only in the dream | kannaka-memory ADR-0057/0058, rogue-agent |
 | Conscience | rails between the voice and every effector; the reasoner is never the arbiter | kannaka-steward |
 | Architecture | the whole described in KannakaHDL, which refuses when a faculty has no honest answer | kannaka-hdl mind + code domains |
@@ -35,15 +35,17 @@ experience → facets → substrate → dream (consolidate, propose, forget)
     → wave.khdl: whole, or the demand by name
 ```
 
-## What is in the first commit
+## What is here
 
-- `src/chiral_scale.rs` — the `10000.00001` number system as a real, tested type. It was
-  pseudo-code in ADR-0021 for six months.
-- `src/lib.rs` — the four organs as traits. Interfaces are committed before
-  implementations.
+- `src/lib.rs` — the organs as traits. Interfaces are committed before implementations.
 - `docs/experiments/E-001` — whether the waves earn their keep, against a plain vector
-  store with the same encoder, facets and forgetting policy. The substrate is not
-  written past that point until this has an answer.
+  store with the same encoder, facets and forgetting policy. **Run; the waves lose**
+  (recall@10 on zero-overlap probes 0.24 against 0.58, Φ equal, ten seeds). The
+  harness, the raw rows and the report are in `experiments/e001/`.
+- `docs/lineage/` — what that decision moved out of the build, kept whole: the
+  `10000.00001` number system as a tested type.
+- `docs/experiments/E-003`, `E-004` — the bridge operator at the conscience boundary,
+  and whether surprise picks what to remember. Pre-registered, not yet run.
 
 ```sh
 cargo test

@@ -4,22 +4,16 @@
 //! Read `docs/adr/ADR-0001-kannaka-wave.md` first, then
 //! `docs/archaeology/README.md` for where every idea here came from and what was
 //! measured about it. This crate commits to **interfaces** before implementations:
-//! the organs are traits (four in ADR-0001, a fifth in ADR-0002), the chiral
-//! number system is a type, and nothing in
-//! the substrate beyond the encoder, the facets and the triage is implemented
-//! until E-001 has decided whether the waves earn their keep.
+//! the organs are traits (four in ADR-0001, a fifth in ADR-0002). E-001 decided
+//! on 2026-09-09 that the waves lose: the substrate is a plain vector store with
+//! the voice's encoder, atomic facets and a stated forgetting policy. The chiral
+//! number system that was here is in `docs/lineage/`, out of the build.
 //!
 //! No dependencies yet. That is deliberate: the first thing this crate must be
 //! able to say is what it is, and it should be able to say it with `cargo test`.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-
-pub mod chiral_scale;
-
-pub use chiral_scale::{
-    ChiralScale, Hand, ScaleError, MAX_POSITIONS, MIN_POSITIONS, POSITION_CAP, POSITION_TOP,
-};
 
 /// A stable identifier for anything that persists. Never a string chosen by a
 /// wire peer (ADR-0039): the substrate assigns it.
@@ -48,10 +42,9 @@ pub struct Recalled {
     /// Cosine in the encoder's space, in `[0, 1]`.
     pub similarity: f32,
     /// Constructive-interference magnitude, **unbounded**. Absent from a
-    /// substrate that has no waves, which is a legitimate substrate (E-001).
+    /// substrate that has no waves, which is what E-001 decided the substrate
+    /// is; the field stays so the record of the arm-W numbers still types.
     pub resonance: Option<f32>,
-    /// The facet's magnitude structure.
-    pub scale: ChiralScale,
 }
 
 /// A retention policy, per content class, stated rather than implied.
@@ -190,7 +183,6 @@ mod tests {
             id: Id(1),
             similarity: 0.76,
             resonance: None,
-            scale: ChiralScale::fresh(),
         };
         assert!(r.similarity <= 1.0);
         assert!(

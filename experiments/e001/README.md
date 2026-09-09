@@ -92,11 +92,30 @@ interference, so the same facets cost it nothing. The pre-registered arms both
 use facets, as the spec says; `E001_NO_FACETS=1` runs a labelled W0/V0 pair for
 attribution, not for the decision.
 
+**6. Dreaming costs the medium recall.** The no-facet medium scored 24/50 and 15/33
+build-only and 14/50 and 7/33 after thirty wave-native dreams; the facet-bearing medium
+went 15/12 to 12/8. Arm V's dream is only the retention rule, and its recall did not
+move. Every wave seed returned the same hits, so the erosion is deterministic in the
+dynamics, not noise in the dream.
+
+**7. Two Φs disagree, and the log says why.** Arm W's native `observe` Φ rose
+0.135 → 0.144 across the run while the shared instrument read 0.030 for both arms. The
+spiral log for the facet-bearing store shows Kuramoto order 0.98, zero cores, zero
+winding: a phase-locked field. The no-facet store sits at order 0.71 with 68 cores.
+Native Φ rewards the lock; a k-NN graph over the survivors' cosine structure does not
+see it.
+
 One more property, mirrored rather than fixed: **facets outlive their parents
 under triage.** A distractor's facets are stored as plain rows whose text does
 not start with `distractor:`, so the retention rule never matches them. Both
 arms behave identically, so the comparison holds, but survivor counts include
 facets of forgotten parents.
+
+## Result
+
+Ten seeds: **the waves lose** (recall@10 zero-overlap 0.242 vs 0.576, Φ equal). The
+full table, the rule applied, and the provenance are in the spec's §Result; the raw
+rows and the report are in [`results/`](results/).
 
 ## Running it
 

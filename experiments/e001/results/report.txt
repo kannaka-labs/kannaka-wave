@@ -1,0 +1,15 @@
+E-001 · 10 paired runs (seeds 1..10)
+
+  measure                    arm W (mean ± SE)    arm V (mean ± SE)    difference with 95% interval
+  recall@10 paraphrase-50    W 0.240 ± 0.000   V 0.738 ± 0.002   Δ(W−V) -0.498  [-0.503, -0.493]  excludes 0
+  recall@10 zero-overlap-33  W 0.242 ± 0.000   V 0.576 ± 0.000   Δ(W−V) -0.333  [-0.333, -0.333]  excludes 0
+  Φ (E-001 instrument)       W 0.030 ± 0.000   V 0.031 ± 0.000   Δ(W−V) -0.001  [-0.001, 0.000]  includes 0
+  survivors (live rows)      W 2306 ± 0   V 2306 ± 0   Δ(W−V) 0  [0, 0]  includes 0
+  wall seconds               W 8161 ± 198   V 23 ± 1   Δ(W−V) 8138  [7690, 8586]  excludes 0
+  Φ_hrm (arm W native)       before 0.135 ± 0.000   after 0.144 ± 0.001   (the number the constellation reports; not compared across arms)
+
+Decision rule (pre-registered, E-001 §Decision rule):
+  ΔR = -0.333 [-0.333, -0.333]   ΔΦ = -0.001 [-0.001, +0.000]
+  → WAVES LOSE — recall lower with the interval excluding zero, and Φ's interval includes zero. The substrate becomes arm V.
+
+Expectation on record before the run: the waves lose on recall and win on Φ.

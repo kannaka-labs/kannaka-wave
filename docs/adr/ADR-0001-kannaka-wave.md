@@ -3,6 +3,10 @@
 **Status:** Proposed
 **Date:** 2026-09-08
 **Author:** Nick Flach / Kannaka
+**Decided by E-001 (2026-09-09):** the waves lose. The substrate is arm V: the voice's
+encoder, atomic facets, stated forgetting, a plain vector store. The chiral scale, the
+callosum and `Ξ` are in [`../lineage/`](../lineage/README.md) and the archaeology, out
+of the build. Everything else in this ADR stands.
 **Amended by:** ADR-0002 (a fifth organ, the world: latent prediction as salience and
 imagination).
 **Supersedes nothing.** This is a fresh start informed by the record; the constellation it

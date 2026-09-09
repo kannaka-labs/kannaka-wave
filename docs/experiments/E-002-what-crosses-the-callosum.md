@@ -1,6 +1,6 @@
 # E-002: What crosses the callosum, and does the fold help it?
 
-**Status:** pre-registered, blocked on E-001 (runs only if the waves win or are undecided)
+**Status:** DECLINED 2026-09-09. E-001 found the waves lose (ΔR = −0.333, ΔΦ ≈ 0); there is no callosum in the build to measure. Kept as the record of what would have been asked.
 **Decides:** whether Fano projection earns a place as the callosum's transfer grammar,
 whether phase should survive recall, and whether `ChiralScale` positions should drive
 dimensionality.
