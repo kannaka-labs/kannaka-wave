@@ -207,13 +207,17 @@ def run_arm_w(seed: int, work: Path, corpus_p: Path, pool_p: Path, probes_p: Pat
     log(f"W{seed} built: {build} Φ_hrm(before)={phi_before['phi']}")
     out_json = dd / "run.json"
     retention_arg = ",".join(f"{k}={v['cap']}" for k, v in RETENTION.items())
-    r = subprocess.run([str(HARNESS), "wave-run", "--corpus", str(corpus_p), "--distractors", str(pool_p),
-                        "--probes", str(probes_p), "--cycles", str(cycles), "--churn", str(churn),
-                        "--seed", str(seed), "--retention", retention_arg, "--out", str(out_json)],
-                       capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
+    # The harness's per-cycle lines go to a file as they happen, so a run that
+    # takes hours can be watched with `tail -f` instead of only read at the end.
+    hlog = dd / "harness.log"
+    with hlog.open("w", encoding="utf-8") as lf:
+        r = subprocess.run([str(HARNESS), "wave-run", "--corpus", str(corpus_p), "--distractors", str(pool_p),
+                            "--probes", str(probes_p), "--cycles", str(cycles), "--churn", str(churn),
+                            "--seed", str(seed), "--retention", retention_arg, "--out", str(out_json)],
+                           stdout=subprocess.PIPE, stderr=lf, text=True, encoding="utf-8", errors="replace", env=env)
     if r.returncode != 0:
-        raise SystemExit(f"wave-run failed:\n{r.stderr[-2000:]}")
-    misses = [l for l in r.stderr.splitlines() if "cache miss" in l]
+        raise SystemExit(f"wave-run failed:\n{hlog.read_text(encoding='utf-8')[-2000:]}")
+    misses = [l for l in hlog.read_text(encoding="utf-8").splitlines() if "cache miss" in l]
     run = json.loads(out_json.read_text(encoding="utf-8"))
     run["phi_hrm_before"], run["phi_hrm_after"] = phi_before, observe_phi(dd, env)
     run["build"] = build
