@@ -162,6 +162,38 @@ fn arg(name: &str) -> Option<String> {
     a.iter().position(|x| x == name).and_then(|i| a.get(i + 1).cloned())
 }
 
+/// Arm W's dream. `KannakaMemorySystem::dream()` is five phases: (1) the
+/// wave-native dream — eigenstructure annealing with the cross-callosal Ξ
+/// coupling (3 cycles, temperature 1.0, chiral perturbation 0.0, the engine's
+/// default); (1.5) a dry-run resonance-merge plan; (2) the LEGACY particle
+/// consolidation — stage_detect and friends, pairwise over every row in 10k
+/// dimensions, the pipeline ADR-0022 diagnosed as "waves snap to particles
+/// when observed"; (3) callosal Kuramoto coupling; (4) a lite chiral pass.
+///
+/// Phase 2 at 1,950 rows ran for more than 26 minutes of one core without
+/// finishing ONE dream on debain2. Thirty of them per seed, on a store that
+/// grows to 4,000 rows, is not an experiment anyone can run. It is also not
+/// the waves: it is the SQL-era consolidation engine kept for its hallucination
+/// and summary stages. E-001 asks whether the WAVES earn their keep, so arm W
+/// dreams phases 1, 3 and 4 — exactly the "annealing + Ξ cross-callosal step"
+/// the spec names — and this choice is recorded in every run's JSON.
+/// `--dream deep` restores the full five-phase dream for anyone with the hours.
+fn wave_dream(sys: &mut KannakaMemorySystem, mode: &str) {
+    if mode == "deep" {
+        sys.dream().expect("deep dream");
+        return;
+    }
+    let store = sys
+        .engine
+        .store
+        .as_any_mut()
+        .downcast_mut::<HrmStore>()
+        .expect("arm W runs on an HrmStore");
+    store.dream_native(3, Some(1.0), 0.0);
+    store.callosal_kuramoto(0.3);
+    store.chiral_dream(false, 1);
+}
+
 fn live_counts(sys: &KannakaMemorySystem) -> (usize, usize) {
     let all = sys.all_memories().expect("all_memories");
     let live = all.iter().filter(|m| m.amplitude > 0.0).count();
@@ -209,6 +241,7 @@ fn wave_run() {
     let churn: usize = arg("--churn").expect("--churn").parse().unwrap();
     let seed: u64 = arg("--seed").expect("--seed").parse().unwrap();
     let out = arg("--out").expect("--out");
+    let dream_mode = arg("--dream").unwrap_or_else(|| "wave".to_string());
     // --retention "prefix=cap,prefix=cap": the same table run.py writes into
     // config.toml for the CLI's observe; applied here through triage_forget.
     let retention: Vec<(String, Option<usize>)> = arg("--retention")
@@ -248,7 +281,7 @@ fn wave_run() {
         }
         let (live_before, _) = live_counts(&sys);
         let t = std::time::Instant::now();
-        sys.dream().expect("dream");
+        wave_dream(&mut sys, &dream_mode);
         let dream_ms = t.elapsed().as_millis();
         // ADR-0054's stage 6b' ghosts by setting the CACHE amplitude to 0.0, and
         // the dream ends with rebuild_cache(), which reads amplitude back from
@@ -290,6 +323,8 @@ fn wave_run() {
     let (live, total) = live_counts(&sys);
     let doc = serde_json::json!({
         "arm": "W", "seed": seed, "cycles": cycles, "churn": churn, "distractors_injected": cursor,
+        "dream": if dream_mode == "deep" { "deep: dream_native(3,1.0,0.0) + resonance-merge dry-run + PARTICLE consolidation + callosal_kuramoto(0.3) + chiral_dream(lite)" }
+                 else { "wave: dream_native(3,1.0,0.0) + callosal_kuramoto(0.3) + chiral_dream(lite); particle consolidation excluded (O(n^2 D), >26 min per dream at 1,950 rows)" },
         "retention": retention.iter().map(|(k, v)| format!("{k}={}", v.map(|c| c.to_string()).unwrap_or_default())).collect::<Vec<_>>(),
         "forgotten_total": rows.iter().map(|r| r.forgotten).sum::<usize>(),
         "live": live, "total": total, "cycle_rows": rows, "results": results, "resonance": raw,
