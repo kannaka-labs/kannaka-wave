@@ -4,7 +4,8 @@
 //! Read `docs/adr/ADR-0001-kannaka-wave.md` first, then
 //! `docs/archaeology/README.md` for where every idea here came from and what was
 //! measured about it. This crate commits to **interfaces** before implementations:
-//! the four organs are traits, the chiral number system is a type, and nothing in
+//! the organs are traits (four in ADR-0001, a fifth in ADR-0002), the chiral
+//! number system is a type, and nothing in
 //! the substrate beyond the encoder, the facets and the triage is implemented
 //! until E-001 has decided whether the waves earn their keep.
 //!
@@ -151,6 +152,34 @@ pub trait Rails {
     fn decide(&self, proposed: &Proposed) -> Verdict;
 }
 
+/// Organ 5 (ADR-0002). The world: a latent predictor over the same space the
+/// encoder produces and recall ranks in. It never writes a row; its only path
+/// into the substrate is the salience of a row the substrate was about to
+/// write anyway, and its only path into a dream is a rollout the rails have
+/// already decided on, action by action.
+pub trait World {
+    /// Observe the world's current state, `Z(t)`, in the encoder's space.
+    fn observe(&mut self, state: &Vector);
+    /// Predict the next state given the current one and, optionally, an
+    /// action the voice proposed. `None` is "the world proceeds without me".
+    fn predict(&self, state: &Vector, action: Option<&str>) -> Vector;
+    /// The raw drive for surprise: how far the world landed from the
+    /// prediction, in the encoder's space. Zero when exact, never negative.
+    /// This is the *distance*; the salience signal is the fast-minus-slow
+    /// response to it (ADR-0040), so a constant stream yields zero salience
+    /// even though each step has a distance.
+    fn surprise(&self, predicted: &Vector, observed: &Vector) -> f32 {
+        debug_assert_eq!(predicted.0.len(), observed.0.len());
+        predicted
+            .0
+            .iter()
+            .zip(&observed.0)
+            .map(|(p, o)| (p - o) * (p - o))
+            .sum::<f32>()
+            .sqrt()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -168,6 +197,28 @@ mod tests {
             r.resonance.is_none(),
             "a vector arm has no resonance and says so"
         );
+    }
+
+    /// A world in which nothing ever changes. Its prediction is always right,
+    /// so its surprise is always zero; that is the property the salience path
+    /// depends on, and the default `surprise` must deliver it exactly.
+    struct StillWorld;
+    impl World for StillWorld {
+        fn observe(&mut self, _state: &Vector) {}
+        fn predict(&self, state: &Vector, _action: Option<&str>) -> Vector {
+            state.clone()
+        }
+    }
+
+    #[test]
+    fn a_perfect_prediction_has_zero_surprise_and_a_wrong_one_does_not() {
+        let w = StillWorld;
+        let z = Vector(vec![0.5, -0.25, 1.0]);
+        let z_hat = w.predict(&z, None);
+        assert_eq!(w.surprise(&z_hat, &z), 0.0, "exact prediction: no surprise");
+        let moved = Vector(vec![0.5, -0.25, 0.0]);
+        assert!((w.surprise(&z_hat, &moved) - 1.0).abs() < 1e-6);
+        assert!(w.surprise(&moved, &z_hat) >= 0.0, "never negative");
     }
 
     #[test]

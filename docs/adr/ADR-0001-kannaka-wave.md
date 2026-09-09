@@ -3,6 +3,8 @@
 **Status:** Proposed
 **Date:** 2026-09-08
 **Author:** Nick Flach / Kannaka
+**Amended by:** ADR-0002 (a fifth organ, the world: latent prediction as salience and
+imagination).
 **Supersedes nothing.** This is a fresh start informed by the record; the constellation it
 learns from keeps running.
 **Builds on:** everything in [`docs/archaeology/`](../archaeology/README.md), by name.
