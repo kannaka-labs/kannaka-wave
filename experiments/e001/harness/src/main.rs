@@ -183,7 +183,11 @@ fn wave_build() {
     let t0 = std::time::Instant::now();
     for (i, row) in corpus.iter().enumerate() {
         let amp = row.amplitude.unwrap_or(0.6).clamp(0.05, 1.0);
-        sys.remember_with_category(&row.content, "corpus", amp).expect("remember");
+        // Not remember_with_category: that path flushes the whole store to disk
+        // after every row (150-200 MB each at this size), which is invisible in
+        // production because the CLI absorbs one row per process, and is 2.6 s
+        // per row here. Same absorb, same interference, one save at the end.
+        sys.engine.store.absorb(&row.content, amp as f32, Some("corpus")).expect("absorb");
         if (i + 1) % 100 == 0 {
             eprintln!("[wave-build] absorbed {}/{}", i + 1, corpus.len());
         }
@@ -239,7 +243,7 @@ fn wave_run() {
             let d = &pool[order[cursor]];
             cursor += 1;
             let text = format!("distractor: {}", d.content);
-            sys.remember_with_category(&text, "distractor", 0.5).expect("remember distractor");
+            sys.engine.store.absorb(&text, 0.5, Some("distractor")).expect("absorb distractor");
             injected += 1;
         }
         let (live_before, _) = live_counts(&sys);
