@@ -24,6 +24,7 @@ per-probe rank goes to <work>/runs/<arm>-<seed>.json. report.py reads the TSV.
 from __future__ import annotations
 
 import argparse
+from array import array
 import json
 import os
 import re
@@ -77,14 +78,14 @@ class Embedder:
         self.path = cache_path
         self.cache: dict[str, list[float]] = {}
         if cache_path.exists():
-            self.cache = json.loads(cache_path.read_text(encoding="utf-8"))
+            self.cache = {k: array("f", v) for k, v in json.loads(cache_path.read_text(encoding="utf-8")).items()}
         self.dirty = 0
 
     def __call__(self, text: str) -> list[float]:
         v = self.cache.get(text)
         if v is None:
-            v = self.batch([text])[0]
-        return v
+            return self.batch([text])[0]
+        return list(v)
 
     def batch(self, texts: list[str]) -> list[list[float]]:
         missing = list(dict.fromkeys(t for t in texts if t not in self.cache))
@@ -98,19 +99,29 @@ class Embedder:
                 embs = json.load(r)["embeddings"]
             for t, e in zip(chunk, embs):
                 n = sum(x * x for x in e) ** 0.5
-                self.cache[t] = [x / n for x in e] if n else e
+                # float32-rounded and stored as array('f'): a Python list of
+                # 1024 floats is ~30 KB, the array is 4 KB, and this box runs
+                # at 86% memory load with the other sessions on it. The first
+                # prepare run was killed for exactly that.
+                self.cache[t] = array("f", [x / n for x in e] if n else e)
                 self.dirty += 1
-            if self.dirty >= 500:
+            if self.dirty >= 256:
                 self.flush()
             if missing and (i // B) % 10 == 0:
                 log(f"  embedded {min(i + B, len(missing))}/{len(missing)}")
         self.flush()
-        return [self.cache[t] for t in texts]
+        return [list(self.cache[t]) for t in texts]
 
     def flush(self) -> None:
         if self.dirty:
             tmp = self.path.with_suffix(".tmp")
-            tmp.write_text(json.dumps(self.cache), encoding="utf-8")
+            with tmp.open("w", encoding="utf-8") as f:
+                f.write("{")
+                first = True
+                for k, v in self.cache.items():
+                    f.write(("" if first else ",") + json.dumps(k) + ":[" + ",".join(f"{x:.6g}" for x in v) + "]")
+                    first = False
+                f.write("}")
             tmp.replace(self.path)
             self.dirty = 0
 
