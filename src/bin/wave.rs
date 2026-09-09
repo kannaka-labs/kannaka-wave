@@ -8,6 +8,7 @@
 //! wave ask "<prompt>" [--top-k 8] [--show-recall]
 //! wave dream [--voice] [--retain "<class>=<cap>[:<ttl_days>]"]...
 //! wave status
+//! wave rows [--last 10]
 //! ```
 //!
 //! Environment: `KWAVE_STORE` (default `~/.kannaka-wave/store.kwave`),
@@ -239,6 +240,27 @@ fn main() {
                 s.len()
             );
         }
+        Some("rows") => {
+            let rest = &args[1..];
+            let last: usize = flag(rest, "--last")
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(10);
+            let s = open(dims);
+            let rows = s.rows();
+            let parents: Vec<_> = rows.iter().filter(|r| r.parent.is_none()).collect();
+            for r in parents.iter().rev().take(last).rev() {
+                let facets = rows.iter().filter(|f| f.parent == Some(r.id)).count();
+                println!(
+                    "{:#x}  recalled {}  facets {}  imp {:.2}
+    {}",
+                    r.id.0,
+                    r.recalled,
+                    facets,
+                    r.importance,
+                    one_line(&r.text, 300)
+                );
+            }
+        }
         Some("status") => {
             let path = store_path();
             if !path.exists() {
@@ -260,7 +282,8 @@ fn main() {
                 "wave remember \"<text>\" [--importance 0.5]\n\
                  wave ask \"<prompt>\" [--top-k 8] [--show-recall]\n\
                  wave dream [--voice] [--retain \"<class>=<cap>[:<ttl_days>]\"]...\n\
-                 wave status"
+                 wave status
+                 wave rows [--last 10]"
             );
             exit(1);
         }

@@ -54,6 +54,23 @@ struct Row {
     vector: Vector,
 }
 
+/// A read-only view of one row, for inspection.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RowView<'a> {
+    /// The row's id.
+    pub id: Id,
+    /// Its parent, if it is a facet.
+    pub parent: Option<Id>,
+    /// Its text.
+    pub text: &'a str,
+    /// Importance at write.
+    pub importance: f32,
+    /// Seconds since the epoch at write.
+    pub created: u64,
+    /// Times recalled (parents only; facets count against their parent).
+    pub recalled: u32,
+}
+
 /// The vector store.
 #[derive(Debug, Clone)]
 pub struct VectorStore {
@@ -226,6 +243,21 @@ impl VectorStore {
             .iter()
             .find(|r| r.id == id)
             .map(|r| r.recalled.get())
+    }
+
+    /// Every row, in absorb order, read-only. For inspection and export.
+    pub fn rows(&self) -> Vec<RowView<'_>> {
+        self.rows
+            .iter()
+            .map(|r| RowView {
+                id: r.id,
+                parent: r.parent,
+                text: &r.text,
+                importance: r.importance,
+                created: r.created,
+                recalled: r.recalled.get(),
+            })
+            .collect()
     }
 
     /// Number of parents (families) held.
