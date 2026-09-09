@@ -178,9 +178,18 @@ def observe_phi(data_dir: Path, env: dict) -> dict:
 
 
 # ---------------------------------------------------------------- arm W
+# E001_NO_FACETS=1 runs the same two arms WITHOUT facet decomposition, labelled
+# W0 and V0. Not part of the pre-registered decision (both arms there use
+# facets); a labelled attribution run, because the build-only check found that
+# facets cost the medium a third of its recall (p50 24/50 → 15/50) while
+# costing plain cosine nothing.
+NO_FACETS = os.environ.get("E001_NO_FACETS") == "1"
+ARM_W, ARM_V = ("W0", "V0") if NO_FACETS else ("W", "V")
+
+
 def wave_env(dd: Path, cache: Path) -> dict:
     env = {k: v for k, v in os.environ.items() if k not in SCRUB}
-    env.update({"KANNAKA_DATA_DIR": str(dd), "KANNAKA_FACET_DECOMPOSE": "1", "KANNAKA_TRIAGE": "1",
+    env.update({"KANNAKA_DATA_DIR": str(dd), "KANNAKA_FACET_DECOMPOSE": "0" if NO_FACETS else "1", "KANNAKA_TRIAGE": "1",
                 "KANNAKA_ENCODER": "ollama", "KANNAKA_ENCODER_MODEL": MODEL, "KANNAKA_ENCODER_DIM": str(DIM),
                 "KANNAKA_ENCODER_URL": OLLAMA, "E001_EMBED_CACHE": str(cache)})
     return env
@@ -269,6 +278,9 @@ def main() -> None:
         return d["by_id"]
     fac_c = facets_for(corpus_p, "", "corpus")
     fac_p = facets_for(pool_p, "distractor: ", "pool")
+    if NO_FACETS:
+        fac_c, fac_p = {}, {}
+        log("E001_NO_FACETS=1: arms W0/V0, no decomposition in either arm")
 
     if a.prepare:
         texts = [r["content"] for r in corpus] + [f for fs in fac_c.values() for f in fs]
@@ -294,7 +306,7 @@ def main() -> None:
             (work / "runs" / f"w-{seed}.json").write_text(json.dumps(run), encoding="utf-8")
             pb, pa = run["phi_hrm_before"], run["phi_hrm_after"]
             with tsv.open("a", encoding="utf-8") as f:
-                f.write(f"{seed}\tW\t{s50['recall_at_10']:.4f}\t{s33['recall_at_10']:.4f}\t{s50['hits']}\t{s33['hits']}\t{ph['phi']:.4f}\t{pb['phi']}\t{pa['phi']}\t{run['live']}\t{run['total']}\t{run['distractors_injected']}\t{run['forgotten_total']}\t{run['wall_s']}\n")
+                f.write(f"{seed}\t{ARM_W}\t{s50['recall_at_10']:.4f}\t{s33['recall_at_10']:.4f}\t{s50['hits']}\t{s33['hits']}\t{ph['phi']:.4f}\t{pb['phi']}\t{pa['phi']}\t{run['live']}\t{run['total']}\t{run['distractors_injected']}\t{run['forgotten_total']}\t{run['wall_s']}\n")
             log(f"W{seed}: p50 {s50['recall_at_10']:.3f} ({s50['hits']}/50) · z33 {s33['recall_at_10']:.3f} ({s33['hits']}/33) · Φ_e001 {ph['phi']:.3f} · Φ_hrm {pb['phi']}→{pa['phi']} · live {run['live']} · forgot {run['forgotten_total']} · {run['wall_s']}s {run['embed_cache_miss_lines']}")
         if "V" in a.arms:
             t0 = time.time()
@@ -306,7 +318,7 @@ def main() -> None:
             forgotten = sum(c["ghosted"] for c in run["cycle_rows"])
             (work / "runs" / f"v-{seed}.json").write_text(json.dumps(run), encoding="utf-8")
             with tsv.open("a", encoding="utf-8") as f:
-                f.write(f"{seed}\tV\t{s50['recall_at_10']:.4f}\t{s33['recall_at_10']:.4f}\t{s50['hits']}\t{s33['hits']}\t{ph['phi']:.4f}\t-\t-\t{run['live']}\t{run['total']}\t{run['distractors_injected']}\t{forgotten}\t{run['wall_s']}\n")
+                f.write(f"{seed}\t{ARM_V}\t{s50['recall_at_10']:.4f}\t{s33['recall_at_10']:.4f}\t{s50['hits']}\t{s33['hits']}\t{ph['phi']:.4f}\t-\t-\t{run['live']}\t{run['total']}\t{run['distractors_injected']}\t{forgotten}\t{run['wall_s']}\n")
             log(f"V{seed}: p50 {s50['recall_at_10']:.3f} ({s50['hits']}/50) · z33 {s33['recall_at_10']:.3f} ({s33['hits']}/33) · Φ_e001 {ph['phi']:.3f} · live {run['live']} · forgot {forgotten} · {run['wall_s']}s")
     emb.flush()
     log("done")

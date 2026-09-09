@@ -73,6 +73,25 @@ disk after every row, 150–200 MB at this size. Invisible in production, where
 the CLI absorbs one row per process; 2.6 s per row in a loop. The harness
 absorbs through the engine's store directly and saves once.
 
+**5. Facets cost the medium a third of its recall; they cost cosine nothing.**
+Build-only, no dreams, 83 probes, the same frozen corpus (`diag.sh`):
+
+| variant | p50 hits /50 | z33 hits /33 |
+|---|---|---|
+| medium, production knobs, facets on (arm W's undreamed baseline) | 15 | 12 |
+| medium, energy-neutral knob, facets on | 20 | 9 |
+| medium, production knobs, facets off | 24 | 15 |
+| the 2026-08-02 record: medium, energy-neutral, facets off | 31 | 22 |
+| plain cosine with facets, after two dream cycles (arm V smoke) | 37 | 19 |
+
+Read-side resolution is on and works (every arm-W top-10 slot mapped to a
+corpus parent, no duplicates); the loss is on the write side. A parent and its
+facets are absorbed as three or four near-duplicate waves that interfere with
+each other, and "storing is thinking" cuts both ways. Cosine has no
+interference, so the same facets cost it nothing. The pre-registered arms both
+use facets, as the spec says; `E001_NO_FACETS=1` runs a labelled W0/V0 pair for
+attribution, not for the decision.
+
 One more property, mirrored rather than fixed: **facets outlive their parents
 under triage.** A distractor's facets are stored as plain rows whose text does
 not start with `distractor:`, so the retention rule never matches them. Both
