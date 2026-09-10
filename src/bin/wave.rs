@@ -5,7 +5,7 @@
 //!
 //! ```text
 //! wave remember "<text>" [--importance 0.5]
-//! wave ask "<prompt>" [--top-k 8] [--show-recall]
+//! wave ask "<prompt>" [--top-k 8] [--show-recall] [--faithfulness [--judge <model>]]
 //! wave dream [--voice] [--retain "<class>=<cap>[:<ttl_days>]"]...
 //! wave status
 //! wave rows [--last 10]
@@ -17,6 +17,7 @@
 //! `KWAVE_VOICE_MODEL` (default `kannaka-brain-7b-v1`).
 
 use kannaka_wave::encoder::OllamaEncoder;
+use kannaka_wave::faithfulness::{measure, measure_with_judge, OllamaJudge, Support};
 use kannaka_wave::store::{VectorStore, PROPOSED_CLASS};
 use kannaka_wave::voice::{ask, OllamaVoice};
 use kannaka_wave::{Retention, Substrate};
@@ -199,6 +200,67 @@ fn main() {
             }
             save(&s); // recall counts are state
             println!("{}", a.text);
+            if rest.iter().any(|a| a == "--faithfulness") {
+                let recalled_ids: Vec<_> = a.recalled.iter().map(|r| r.id).collect();
+                let rep = match flag(rest, "--judge") {
+                    Some(model) => {
+                        // Foreign controls: parents the substrate did not recall.
+                        let foreign: Vec<String> = s
+                            .rows()
+                            .iter()
+                            .filter(|r| r.parent.is_none() && !recalled_ids.contains(&r.id))
+                            .take(3)
+                            .map(|r| r.text.to_string())
+                            .collect();
+                        let judge = OllamaJudge::new(&host, port, &model);
+                        measure_with_judge(&a.text, &a.recalled, &judge, &[], &foreign)
+                    }
+                    None => measure(&a.text, &a.recalled),
+                };
+                eprintln!("faithfulness:");
+                for c in &rep.claims {
+                    let tag = match &c.support {
+                        Support::Grounded { .. } => "grounded".to_string(),
+                        Support::Unsupported { missing } => {
+                            format!("UNSUPPORTED (missing: {})", missing.join(", "))
+                        }
+                        Support::Unanchored => "unanchored".to_string(),
+                        Support::Exempt => "exempt (hedge)".to_string(),
+                    };
+                    let j = match c.judged {
+                        Some(kannaka_wave::faithfulness::Judged::Supported) => {
+                            " · judge: supported"
+                        }
+                        Some(kannaka_wave::faithfulness::Judged::Unsupported) => {
+                            " · judge: UNSUPPORTED"
+                        }
+                        None => "",
+                    };
+                    eprintln!("  [{tag}{j}] {}", one_line(&c.text, 140));
+                }
+                match rep.anchored() {
+                    Some(x) => eprintln!("  anchored faithfulness: {x:.2}"),
+                    None => eprintln!("  anchored faithfulness: no anchored claims"),
+                }
+                if let Some(ctl) = &rep.controls {
+                    eprintln!(
+                        "  judge controls: reference {}/{}, foreign {}/{} -> {}",
+                        ctl.reference_passed,
+                        ctl.reference_total,
+                        ctl.foreign_passed,
+                        ctl.foreign_total,
+                        if ctl.hold() {
+                            "judge stands"
+                        } else {
+                            "JUDGE VOID, verdicts discarded"
+                        }
+                    );
+                    match rep.judged() {
+                        Some(x) => eprintln!("  judged faithfulness: {x:.2}"),
+                        None => eprintln!("  judged faithfulness: none"),
+                    }
+                }
+            }
         }
         Some("dream") => {
             let rest = &args[1..];

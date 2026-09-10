@@ -24,6 +24,7 @@
 pub mod adoption;
 pub mod encoder;
 pub mod facet;
+pub mod faithfulness;
 mod http;
 pub mod store;
 pub mod voice;
