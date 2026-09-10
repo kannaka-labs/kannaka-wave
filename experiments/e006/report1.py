@@ -48,8 +48,7 @@ def main(path):
     except OSError:
         tr = []
     if tr:
-        print("
-utterance length (words), per arm:")
+        print("\nutterance length (words), per arm:")
         for a in arms:
             ws = [len(x[k].split()) for x in tr if x["arm"] == a for k in ("a", "b")]
             short = sum(1 for w in ws if w < 4)

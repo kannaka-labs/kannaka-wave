@@ -1,0 +1,9 @@
+run	arm	model	prompt	turn	share_ab_all	share_ba_all	share_ab_last3	share_ba_last3	secs
+reading1	L	kannaka-brain-7b-v1	0	0	0.0000	0.0000	0.0000	0.0000	6.4
+reading1	L	kannaka-brain-7b-v1	0	1	0.0130	0.0294	0.0130	0.0294	1.5
+reading1	L	kannaka-brain-7b-v1	0	2	0.0114	0.0294	0.0114	0.0294	1.0
+reading1	L	kannaka-brain-7b-v1	0	3	0.0109	0.0286	0.0000	0.0000	0.9
+reading1	L	kannaka-brain-7b-v1	0	4	0.0100	0.0286	0.0000	0.0000	0.9
+reading1	L	kannaka-brain-7b-v1	0	5	0.0075	0.0263	0.0000	0.0000	1.8
+reading1	L	kannaka-brain-7b-v1	0	6	0.0511	0.1228	0.1000	0.2273	1.3
+reading1	L	kannaka-brain-7b-v1	0	7	0.0577	0.1385	0.0984	0.1935	1.6
