@@ -91,6 +91,42 @@ impl OllamaEncoder {
         }
         Ok(normalize(Vector(v)))
     }
+
+    /// Encode many texts in one request through `/api/embed`, which returns
+    /// one vector per input. Same vectors as one at a time; a tenth of the
+    /// wall time on CPU. Chunk the input at a few dozen texts.
+    pub fn try_encode_batch(&self, texts: &[&str]) -> Result<Vec<Vector>, EncodeError> {
+        if texts.is_empty() {
+            return Ok(Vec::new());
+        }
+        let inputs: Vec<String> = texts.iter().map(|t| json_quote(t)).collect();
+        let body = format!(
+            "{{\"model\":{},\"input\":[{}]}}",
+            json_quote(&self.model),
+            inputs.join(",")
+        );
+        let payload = post_json(&self.host, self.port, "/api/embed", &body, self.timeout)?;
+        let vs = parse_embeddings(&payload)?;
+        if vs.len() != texts.len() {
+            return Err(EncodeError::Bad(format!(
+                "sent {} texts, got {} vectors",
+                texts.len(),
+                vs.len()
+            )));
+        }
+        let mut out = Vec::with_capacity(vs.len());
+        for v in vs {
+            if v.len() != self.dims {
+                return Err(EncodeError::Bad(format!(
+                    "expected {} dims, got {}",
+                    self.dims,
+                    v.len()
+                )));
+            }
+            out.push(normalize(Vector(v)));
+        }
+        Ok(out)
+    }
 }
 
 impl Encoder for OllamaEncoder {
@@ -114,6 +150,48 @@ pub fn normalize(mut v: Vector) -> Vector {
         }
     }
     v
+}
+
+/// Pull the `"embeddings":[[…],[…]]` arrays out of `/api/embed`'s reply.
+fn parse_embeddings(payload: &str) -> Result<Vec<Vec<f32>>, EncodeError> {
+    let key = "\"embeddings\"";
+    let at = payload
+        .find(key)
+        .ok_or_else(|| EncodeError::Bad("no embeddings field".into()))?;
+    let after = &payload[at + key.len()..];
+    let open = after
+        .find('[')
+        .ok_or_else(|| EncodeError::Bad("embeddings is not an array".into()))?;
+    let mut rest = &after[open + 1..];
+    let mut out = Vec::new();
+    loop {
+        let t = rest.trim_start();
+        let t = t.strip_prefix(',').unwrap_or(t).trim_start();
+        if t.starts_with(']') || t.is_empty() {
+            break;
+        }
+        let inner_open = t
+            .find('[')
+            .ok_or_else(|| EncodeError::Bad("embedding row is not an array".into()))?;
+        let inner_close = t[inner_open..]
+            .find(']')
+            .ok_or_else(|| EncodeError::Bad("unterminated embedding row".into()))?;
+        let inner = &t[inner_open + 1..inner_open + inner_close];
+        let mut v = Vec::new();
+        for tok in inner.split(',') {
+            let s = tok.trim();
+            if s.is_empty() {
+                continue;
+            }
+            v.push(
+                s.parse::<f32>()
+                    .map_err(|_| EncodeError::Bad(format!("bad number {s:?}")))?,
+            );
+        }
+        out.push(v);
+        rest = &t[inner_open + inner_close + 1..];
+    }
+    Ok(out)
 }
 
 /// Pull the `"embedding":[…]` array out of ollama's reply.
@@ -160,6 +238,29 @@ mod tests {
         let req = seen.join().unwrap();
         assert!(req.starts_with("POST /api/embeddings HTTP/1.1"));
         assert!(req.ends_with("{\"model\":\"m\",\"prompt\":\"hello \\\"there\\\"\\n\"}"));
+    }
+
+    #[test]
+    fn a_batch_comes_back_in_order_and_normalised() {
+        let (port, seen) = serve_once(Box::leak(
+            ok("{\"model\":\"m\",\"embeddings\":[[3.0,4.0,0.0],[0.0,0.0,2.0]],\"total_duration\":1}")
+                .into_boxed_str(),
+        ));
+        let e = OllamaEncoder::new("127.0.0.1", port, "m", 3);
+        let vs = e.try_encode_batch(&["a", "b"]).unwrap();
+        assert_eq!(vs.len(), 2);
+        assert!((vs[0].0[1] - 0.8).abs() < 1e-6);
+        assert_eq!(vs[1].0, vec![0.0, 0.0, 1.0]);
+        let req = seen.join().unwrap();
+        assert!(req.starts_with("POST /api/embed HTTP/1.1"));
+        assert!(req.ends_with("{\"model\":\"m\",\"input\":[\"a\",\"b\"]}"));
+        let (port, _) = serve_once(Box::leak(ok("{\"embeddings\":[[1,0,0]]}").into_boxed_str()));
+        let e = OllamaEncoder::new("127.0.0.1", port, "m", 3);
+        assert!(matches!(
+            e.try_encode_batch(&["a", "b"]),
+            Err(EncodeError::Bad(_))
+        ));
+        assert!(e.try_encode_batch(&[]).unwrap().is_empty());
     }
 
     #[test]

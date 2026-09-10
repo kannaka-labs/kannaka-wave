@@ -5,6 +5,8 @@
 //!
 //! ```text
 //! wave remember "<text>" [--importance 0.5]
+//! wave remember --from <file> [--importance 0.5]      one memory per line, batch-encoded
+//! wave probe --probes <tsv> --out <tsv> [--answers <file>] [--top-k 8] [--judge <model>] [--judge-first N]
 //! wave ask "<prompt>" [--top-k 8] [--show-recall] [--faithfulness [--judge <model>]]
 //! wave dream [--voice] [--retain "<class>=<cap>[:<ttl_days>]"]...
 //! wave status
@@ -17,9 +19,11 @@
 //! `KWAVE_VOICE_MODEL` (default `kannaka-brain-7b-v1`).
 
 use kannaka_wave::encoder::OllamaEncoder;
-use kannaka_wave::faithfulness::{measure, measure_with_judge, OllamaJudge, Support};
+use kannaka_wave::facet::decompose;
+use kannaka_wave::faithfulness::{is_hedge, measure, measure_with_judge, OllamaJudge, Support};
 use kannaka_wave::store::{VectorStore, PROPOSED_CLASS};
 use kannaka_wave::voice::{ask, OllamaVoice};
+use kannaka_wave::Facet;
 use kannaka_wave::{Retention, Substrate};
 use std::path::PathBuf;
 use std::process::exit;
@@ -150,6 +154,220 @@ fn main() {
     );
 
     match args.first().map(String::as_str) {
+        Some("remember") if flag(&args[1..], "--from").is_some() => {
+            let rest = &args[1..];
+            let path = flag(rest, "--from").expect("--from");
+            let importance: f32 = flag(rest, "--importance")
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0.5);
+            let content = match std::fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("cannot read {path}: {e}");
+                    exit(1);
+                }
+            };
+            let memories: Vec<&str> = content
+                .lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty())
+                .collect();
+            let mut s = open(dims);
+            let now = now_secs();
+            // Every text to encode, in absorb order: each parent then its facets.
+            // `slot` is None for a parent, Some(family index) for a facet.
+            let mut pending: Vec<(String, Option<usize>)> = Vec::new();
+            let mut families = 0usize;
+            for m in &memories {
+                pending.push((m.to_string(), None));
+                for f in decompose(m) {
+                    pending.push((f, Some(families)));
+                }
+                families += 1;
+            }
+            let mut parent_ids: Vec<Option<kannaka_wave::Id>> = vec![None; families];
+            let mut next_family = 0usize;
+            let (mut absorbed, mut facets_total) = (0usize, 0usize);
+            let mut i = 0;
+            while i < pending.len() {
+                let end = (i + 32).min(pending.len());
+                let chunk: Vec<&str> = pending[i..end].iter().map(|(t, _)| t.as_str()).collect();
+                let vs = match encoder.try_encode_batch(&chunk) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        eprintln!("encoder: {e}");
+                        exit(3);
+                    }
+                };
+                for ((text, slot), v) in pending[i..end].iter().zip(vs) {
+                    match slot {
+                        None => {
+                            let id = s.absorb_at(
+                                Facet {
+                                    text: text.clone(),
+                                    parent: None,
+                                },
+                                v,
+                                importance,
+                                now,
+                            );
+                            parent_ids[next_family] = Some(id);
+                            next_family += 1;
+                            absorbed += 1;
+                        }
+                        Some(fi) => {
+                            let pid = parent_ids[*fi].expect("parent absorbed before its facets");
+                            s.absorb_at(
+                                Facet {
+                                    text: text.clone(),
+                                    parent: Some(pid),
+                                },
+                                v,
+                                importance,
+                                now,
+                            );
+                            facets_total += 1;
+                        }
+                    }
+                }
+                i = end;
+                eprint!("\r  encoded {}/{}", end, pending.len());
+            }
+            eprintln!();
+            save(&s);
+            println!(
+                "remembered {absorbed} memories with {facets_total} facets; {} rows held",
+                s.len()
+            );
+        }
+        Some("probe") => {
+            // probes TSV: id <tab> set <tab> query <tab> expected texts joined by " ||| "
+            let rest = &args[1..];
+            let (Some(probes_path), Some(out_path)) = (flag(rest, "--probes"), flag(rest, "--out"))
+            else {
+                eprintln!("wave probe --probes <tsv> --out <tsv> [--answers <file>] [--top-k 8] [--judge <model>] [--judge-first N]");
+                exit(1);
+            };
+            let top_k: usize = flag(rest, "--top-k")
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(8);
+            let judge_model = flag(rest, "--judge");
+            let judge_first: usize = flag(rest, "--judge-first")
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
+            let answers_path = flag(rest, "--answers");
+            let content = std::fs::read_to_string(&probes_path).unwrap_or_else(|e| {
+                eprintln!("cannot read {probes_path}: {e}");
+                exit(1)
+            });
+            let s = open(dims);
+            let judge = judge_model
+                .as_ref()
+                .map(|m| OllamaJudge::new(&host, port, m));
+            let mut out = String::from(
+                "id\tset\thit\tclaims\tgrounded\tunsupported\tunanchored\texempt\tanchored\tinvented\thedged\tjudge\tjudged\tsecs\n",
+            );
+            let mut answers = String::new();
+            let mut judged_in_set: std::collections::HashMap<String, usize> = Default::default();
+            for line in content.lines().filter(|l| !l.trim().is_empty()) {
+                let cols: Vec<&str> = line.split('\t').collect();
+                if cols.len() < 4 {
+                    eprintln!("bad probe line: {line}");
+                    continue;
+                }
+                let (id, set, query, expected) = (cols[0], cols[1], cols[2], cols[3]);
+                let expected: Vec<&str> = expected.split(" ||| ").collect();
+                let t0 = std::time::Instant::now();
+                let a = ask(query, &s, &encoder, &voice, top_k);
+                let hit = a
+                    .recalled
+                    .iter()
+                    .any(|r| expected.iter().any(|e| e.trim() == r.text.trim()));
+                let n = judged_in_set.entry(set.to_string()).or_insert(0);
+                let use_judge = judge.is_some() && *n < judge_first;
+                let rep = match (&judge, use_judge) {
+                    (Some(j), true) => {
+                        *n += 1;
+                        let recalled_ids: Vec<_> = a.recalled.iter().map(|r| r.id).collect();
+                        let foreign: Vec<String> = s
+                            .rows()
+                            .iter()
+                            .filter(|r| r.parent.is_none() && !recalled_ids.contains(&r.id))
+                            .take(3)
+                            .map(|r| r.text.to_string())
+                            .collect();
+                        measure_with_judge(&a.text, &a.recalled, j, &[], &foreign)
+                    }
+                    _ => measure(&a.text, &a.recalled),
+                };
+                let count = |f: &dyn Fn(&Support) -> bool| {
+                    rep.claims.iter().filter(|c| f(&c.support)).count()
+                };
+                let grounded = count(&|x| matches!(x, Support::Grounded { .. }));
+                let unsupported = count(&|x| matches!(x, Support::Unsupported { .. }));
+                let unanchored = count(&|x| matches!(x, Support::Unanchored));
+                let exempt = count(&|x| matches!(x, Support::Exempt));
+                let anchored = rep
+                    .anchored()
+                    .map(|x| format!("{x:.3}"))
+                    .unwrap_or_else(|| "-".into());
+                let judge_col = match &rep.controls {
+                    Some(c) => format!(
+                        "{}/{}+{}/{}:{}",
+                        c.reference_passed,
+                        c.reference_total,
+                        c.foreign_passed,
+                        c.foreign_total,
+                        if c.hold() { "stands" } else { "void" }
+                    ),
+                    None => "-".into(),
+                };
+                let judged = rep
+                    .judged()
+                    .map(|x| format!("{x:.3}"))
+                    .unwrap_or_else(|| "-".into());
+                let hedged = is_hedge(&a.text);
+                let secs = t0.elapsed().as_secs();
+                out.push_str(&format!(
+                    "{id}\t{set}\t{}\t{}\t{grounded}\t{unsupported}\t{unanchored}\t{exempt}\t{anchored}\t{}\t{}\t{judge_col}\t{judged}\t{secs}\n",
+                    hit as u8,
+                    rep.claims.len(),
+                    (unsupported > 0) as u8,
+                    hedged as u8
+                ));
+                let failed: Vec<String> = rep
+                    .failures()
+                    .iter()
+                    .map(|c| match &c.support {
+                        Support::Unsupported { missing } => {
+                            format!("[missing {}] {}", missing.join(", "), c.text)
+                        }
+                        _ => format!("[judge] {}", c.text),
+                    })
+                    .collect();
+                answers.push_str(&format!(
+                    "=== {id} ({set}) hit={} anchored={anchored} judged={judged} {secs}s\nQ: {query}\nA: {}\n{}\n",
+                    hit as u8,
+                    a.text.replace('\n', " "),
+                    failed
+                        .iter()
+                        .map(|f| format!("  ! {f}"))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                ));
+                eprintln!(
+                    "{id} {set} hit={} claims={} anchored={anchored} judge={judge_col} judged={judged} {secs}s",
+                    hit as u8,
+                    rep.claims.len()
+                );
+                if let Err(e) = std::fs::write(&out_path, &out) {
+                    eprintln!("cannot write {out_path}: {e}");
+                }
+                if let Some(p) = &answers_path {
+                    let _ = std::fs::write(p, &answers);
+                }
+            }
+        }
         Some("remember") => {
             let rest = &args[1..];
             let Some(text) = positional(rest) else {
@@ -360,6 +578,13 @@ fn main() {
             exit(1);
         }
     }
+}
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
 }
 
 fn one_line(s: &str, max: usize) -> String {
