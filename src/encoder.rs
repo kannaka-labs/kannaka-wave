@@ -65,6 +65,13 @@ impl OllamaEncoder {
         }
     }
 
+    /// Socket timeout for one request. Batches of long texts on a busy CPU
+    /// can take minutes; the default is 60 s.
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
     /// Encode, returning the error instead of panicking. `Encoder::encode`
     /// panics on failure because the trait has no error channel; production
     /// callers use this.

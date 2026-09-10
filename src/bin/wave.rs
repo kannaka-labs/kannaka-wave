@@ -174,6 +174,10 @@ fn main() {
                 .collect();
             let mut s = open(dims);
             let now = now_secs();
+            // Long batches on a busy CPU can take minutes.
+            let encoder = encoder
+                .clone()
+                .with_timeout(std::time::Duration::from_secs(600));
             // Every text to encode, in absorb order: each parent then its facets.
             // `slot` is None for a parent, Some(family index) for a facet.
             let mut pending: Vec<(String, Option<usize>)> = Vec::new();
@@ -190,13 +194,27 @@ fn main() {
             let (mut absorbed, mut facets_total) = (0usize, 0usize);
             let mut i = 0;
             while i < pending.len() {
-                let end = (i + 32).min(pending.len());
+                let end = (i + 16).min(pending.len());
                 let chunk: Vec<&str> = pending[i..end].iter().map(|(t, _)| t.as_str()).collect();
+                // A failed batch is retried one text at a time before giving up.
                 let vs = match encoder.try_encode_batch(&chunk) {
                     Ok(v) => v,
                     Err(e) => {
-                        eprintln!("encoder: {e}");
-                        exit(3);
+                        eprintln!(
+                            "
+encoder batch failed ({e}); retrying one at a time"
+                        );
+                        let mut singles = Vec::with_capacity(chunk.len());
+                        for t in &chunk {
+                            match encoder.try_encode(t) {
+                                Ok(v) => singles.push(v),
+                                Err(e) => {
+                                    eprintln!("encoder: {e}");
+                                    exit(3);
+                                }
+                            }
+                        }
+                        singles
                     }
                 };
                 for ((text, slot), v) in pending[i..end].iter().zip(vs) {
