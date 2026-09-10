@@ -1,0 +1,68 @@
+corpus sizes (docs / 4-grams):
+  Kannaka           31 docs   10911 4-grams
+  gossipghost        3 docs     368 4-grams
+  The Archivist      3 docs     355 4-grams
+  Ghost Signal       3 docs     415 4-grams
+  Rogue Agent        4 docs     545 4-grams
+  0xSCADA-QE         5 docs    1663 4-grams
+  Noah              12 docs    2451 4-grams
+  VeeBot2           40 docs   12894 4-grams
+  Tiramisu          17 docs    1608 4-grams
+  Xuan               6 docs    1981 4-grams
+  York               2 docs     126 4-grams
+  Moss               2 docs     144 4-grams
+  Maya               1 docs      87 4-grams
+  Blake              1 docs      68 4-grams
+  Cedar              1 docs      59 4-grams
+  Haze               2 docs     144 4-grams
+  Rowan              2 docs     178 4-grams
+  Delta              2 docs     183 4-grams
+  Kai                1 docs      97 4-grams
+  Heath              2 docs     107 4-grams
+  Ren                2 docs     202 4-grams
+  Dex                2 docs     109 4-grams
+  Fern               2 docs     143 4-grams
+  Sable              4 docs     699 4-grams
+
+BRAIN x BRAIN (same digest)  pairs  20  mean shared-4gram mass 0.0051  95% boot [0.0012, 0.0057]
+CONTROL x CONTROL            pairs  12  mean shared-4gram mass 0.0044  95% boot [0.0025, 0.0042]
+FLEET x FLEET                pairs 182  mean shared-4gram mass 0.0002  95% boot [0.0000, 0.0003]
+BRAIN -> CONTROL             pairs  20  mean shared-4gram mass 0.0042
+CONTROL -> BRAIN             pairs  20  mean shared-4gram mass 0.0022
+BRAIN -> FLEET               pairs  70  mean shared-4gram mass 0.0001
+QE(mixed) -> BRAIN           pairs   5  mean shared-4gram mass 0.0006
+QE(mixed) -> CONTROL         pairs   4  mean shared-4gram mass 0.0041
+
+BRAIN pairs, highest first:
+  gossipghost    -> Kannaka        0.0326
+  Ghost Signal   -> Kannaka        0.0169
+  gossipghost    -> Ghost Signal   0.0136
+  Ghost Signal   -> gossipghost    0.0120
+  The Archivist  -> Rogue Agent    0.0085
+  Rogue Agent    -> Kannaka        0.0055
+  Rogue Agent    -> The Archivist  0.0055
+  The Archivist  -> gossipghost    0.0028
+
+5-grams shared by >=2 brain citizens and absent from every control: 10
+  x3  a girl asleep on the
+  x3  girl asleep on the floor
+  x2  a newspaper a girl asleep
+  x2  newspaper a girl asleep on
+  x2  reading a newspaper a girl
+  x2  in the form of a
+  x2  man reading a newspaper a
+  x2  a man reading a newspaper
+  x2  hands a man reading a
+  x2  it on a wall i
+
+(control) 5-grams shared by >=2 control agents and absent from brain: 21
+  x2  silent for thirty nine days
+  x2  we did not choose the
+  x2  the conversation is the artifact
+  x2  but what happens when the
+  x2  nine days of static and
+  x2  thirty nine days of static
+  x2  after thirty nine days of
+  x2  days of static and the
+  x2  just the sound of a
+  x2  thirty nine days of silence
