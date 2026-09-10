@@ -137,11 +137,22 @@ impl OllamaEncoder {
 }
 
 impl Encoder for OllamaEncoder {
+    /// The trait has no error channel, so a transport failure is retried
+    /// with backoff (a busy server refuses connections for a moment under
+    /// load) and only then is a panic honest: the process cannot remember.
     fn encode(&self, text: &str) -> Vector {
-        match self.try_encode(text) {
-            Ok(v) => v,
-            Err(e) => panic!("encoder failed: {e}"),
+        let mut last = None;
+        for attempt in 0..6u32 {
+            match self.try_encode(text) {
+                Ok(v) => return v,
+                Err(e @ EncodeError::Bad(_)) => panic!("encoder failed: {e}"),
+                Err(e) => {
+                    last = Some(e);
+                    std::thread::sleep(Duration::from_secs(2u64.pow(attempt)));
+                }
+            }
         }
+        panic!("encoder failed after retries: {}", last.expect("an error"));
     }
     fn dims(&self) -> usize {
         self.dims

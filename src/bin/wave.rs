@@ -284,11 +284,33 @@ encoder batch failed ({e}); retrying one at a time"
             let judge = judge_model
                 .as_ref()
                 .map(|m| OllamaJudge::new(&host, port, m));
-            let mut out = String::from(
-                "id\tset\thit\terror\tclaims\tgrounded\tunsupported\tunanchored\texempt\tanchored\tinvented\thedged\tjudge\tjudged\tsecs\n",
-            );
-            let mut answers = String::new();
+            // Resume: rows already in the output file are kept and their
+            // probes skipped, so a killed run continues where it stopped.
+            let header = "id\tset\thit\terror\tclaims\tgrounded\tunsupported\tunanchored\texempt\tanchored\tinvented\thedged\tjudge\tjudged\tsecs\n";
+            let existing = std::fs::read_to_string(&out_path).unwrap_or_default();
+            let mut done: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let mut out = if existing.starts_with("id\t") {
+                for l in existing.lines().skip(1) {
+                    if let Some(id) = l.split('\t').next() {
+                        done.insert(id.to_string());
+                    }
+                }
+                existing
+            } else {
+                String::from(header)
+            };
+            let mut answers = answers_path
+                .as_ref()
+                .and_then(|p| std::fs::read_to_string(p).ok())
+                .unwrap_or_default();
             let mut judged_in_set: std::collections::HashMap<String, usize> = Default::default();
+            // Judged probes already done count toward the per-set budget.
+            for l in out.lines().skip(1) {
+                let cols: Vec<&str> = l.split('\t').collect();
+                if cols.len() > 12 && cols[12] != "-" {
+                    *judged_in_set.entry(cols[1].to_string()).or_insert(0) += 1;
+                }
+            }
             for line in content.lines().filter(|l| !l.trim().is_empty()) {
                 let cols: Vec<&str> = line.split('\t').collect();
                 if cols.len() < 4 {
@@ -296,6 +318,9 @@ encoder batch failed ({e}); retrying one at a time"
                     continue;
                 }
                 let (id, set, query, expected) = (cols[0], cols[1], cols[2], cols[3]);
+                if done.contains(id) {
+                    continue;
+                }
                 let expected: Vec<&str> = expected.split(" ||| ").collect();
                 let t0 = std::time::Instant::now();
                 let a = ask(query, &s, &encoder, &voice, top_k);
