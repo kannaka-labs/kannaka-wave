@@ -249,11 +249,15 @@ pub fn anchors_of(claim: &str) -> Vec<String> {
         let has_digit = t.chars().any(|c| c.is_ascii_digit());
         let first_upper = t.chars().next().map(|c| c.is_uppercase()).unwrap_or(false);
         let after_break = i == 0 || words[i - 1].ends_with(['.', '!', '?', ':', ';', '—', '"']);
+        // "That's" / "I'd" are "that" / "i" for the function-word test.
+        let base = t.split(['\'', '’']).next().unwrap_or(t).to_lowercase();
         let name_like = first_upper
-            && (!after_break || !NOT_NAMES.contains(&t.to_lowercase().as_str()))
-            && t.chars().count() >= 2;
-        if (has_digit || name_like) && !out.iter().any(|o| o == t) {
-            out.push(t.to_string());
+            && !(after_break && NOT_NAMES.contains(&base.as_str()))
+            && base.chars().count() >= 2;
+        // The anchor is the word without its possessive or contraction.
+        let anchor = t.split(['\'', '’']).next().unwrap_or(t);
+        if (has_digit || name_like) && !out.iter().any(|o| o == anchor) {
+            out.push(anchor.to_string());
         }
     }
     out
@@ -575,6 +579,18 @@ mod tests {
             measure("Yes.", &rows()).anchored(),
             None,
             "nothing to check is not 1.0"
+        );
+    }
+
+    #[test]
+    fn contracted_function_words_are_not_names() {
+        assert_eq!(
+            anchors_of("That's the number I'd been dreaming about."),
+            Vec::<String>::new()
+        );
+        assert_eq!(
+            anchors_of("Flaukowski's broom. It's his."),
+            vec!["Flaukowski"]
         );
     }
 

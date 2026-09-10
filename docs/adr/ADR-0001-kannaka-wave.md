@@ -191,6 +191,11 @@ waves, and that is still Kannaka.
   | the HRM merge | 0.75 | 4/5, void | — | the dream's false proposal ("nearly the golden ratio") was **recalled and repeated**, and the anchor grader graded it grounded, because the store now holds it. The one miss was a plural (`UUIDs` vs `UUID`), fixed |
   | "what connection did you make in the last dream?" | 0.50 | 5/5, stands | 0.00 | every sentence unsupported; the voice narrates a dream it was not shown |
 
+  Re-asked after the label shipped, the voice repeated the proposal anyway, then
+  invented arithmetic to defend it ("481/293 ≈ 1.636"); anchors caught every invented
+  number, and the label is now visible in the report ("grounded BY A DREAM PROPOSAL").
+  The voice does not yet honour "unverified"; that is a training-data fact about this
+  LoRA, and now a measured one.
   Two consequences shipped with the instrument: the voice's prompt now labels a
   recalled proposal "(proposed in a dream, unverified)", and the report says when a
   claim is grounded only by a proposal. The first number for this voice, on this
