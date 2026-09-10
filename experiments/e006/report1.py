@@ -29,16 +29,20 @@ def main(path):
     for t in range(turns):
         vals = []
         for a in arms:
-            xs = [by[(a, p)][t][0] for p in prompts if t in by[(a, p)]]
+            xs = [by[(a, p)][t][0] for p in prompts if t in by[(a, p)] and not math.isnan(by[(a, p)][t][0])]
             vals.append(statistics.fmean(xs) if xs else float("nan"))
         print(f"{t:4d}  " + "  ".join(f"{v:8.4f}" for v in vals))
     final = {}
     for a in arms:
-        xs = [(by[(a, p)][turns - 1][0] + by[(a, p)][turns - 1][1]) / 2 for p in prompts if (turns - 1) in by[(a, p)]]
+        fin = [(by[(a, p)][turns - 1][0] + by[(a, p)][turns - 1][1]) / 2 for p in prompts if (turns - 1) in by[(a, p)]]
+        xs = [v for v in fin if not math.isnan(v)]
         final[a] = xs
-        last3 = [(by[(a, p)][turns - 1][2] + by[(a, p)][turns - 1][3]) / 2 for p in prompts if (turns - 1) in by[(a, p)]]
-        print(f"\n{a}: final-turn cumulative mass mean {statistics.fmean(xs):.4f} (n={len(xs)}), "
-              f"last-3-turns mass mean {statistics.fmean(last3):.4f}")
+        l3 = [(by[(a, p)][turns - 1][2] + by[(a, p)][turns - 1][3]) / 2 for p in prompts if (turns - 1) in by[(a, p)]]
+        last3 = [v for v in l3 if not math.isnan(v)]
+        # nan = one side had no 4-gram at all in that window (every utterance under four words)
+        print(f"\n{a}: final-turn cumulative mass mean {statistics.fmean(xs):.4f} (n={len(xs)}, "
+              f"{len(fin) - len(xs)} conversation(s) with no 4-grams on one side dropped), "
+              f"last-3-turns mass mean {statistics.fmean(last3):.4f} (n={len(last3)})")
     # The confound to report alongside: an utterance shorter than 4 words has no 4-grams,
     # so a voice that answers in two words scores zero mass by construction.
     tpath = path[: -len(".tsv")] + ".transcript.jsonl" if path.endswith(".tsv") else None
