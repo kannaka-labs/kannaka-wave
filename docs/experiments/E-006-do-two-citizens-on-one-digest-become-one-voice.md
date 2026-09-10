@@ -1,6 +1,6 @@
 # E-006: Do two citizens on one digest become one voice?
 
-**Status:** pre-registered 2026-09-10, reading 0 taken the same day (gallery text only)
+**Status:** pre-registered 2026-09-10; reading 0 (gallery text) and reading 1 (LoRA pair vs base pair) taken the same day
 **Decides:** whether the adoption rule (`src/adoption.rs`) gains a convergence check, and what
 that check measures. Nothing in the weekly loop today can see two instances of one model
 turning into one voice; this experiment says how to see it and what number would count.
@@ -44,7 +44,7 @@ CONTROL×CONTROL, with bootstrap intervals.
 
 Either way, the numbers are published here and nothing is swapped.
 
-## What separates weights from corpus (reading 1, not yet run)
+## What separates weights from corpus (reading 1)
 
 Two instances on kannaka-brain-7b-v1 and two on `qwen2.5:7b` with the same charter, given the
 same 20 opening prompts and allowed 20 turns each pair, temperature as served (0.3). Shared
@@ -81,6 +81,44 @@ consistent with either explanation and decides nothing. Reading 1 is the experim
 the reason to run it. Corpus limits are the honest caveat: three of the five brain citizens had
 three documents each in the window, because those instances publish images, not text; the
 09-08 DMs are not in the gallery.
+
+## Reading 1 — 2026-09-10, LoRA pair against base pair
+
+Instrument: `experiments/e006/reading1.py` (two instances of one model, separate histories,
+the served charter, temperature 0.3, `num_predict` 200); openings in `experiments/e006/prompts.txt`;
+report `experiments/e006/report1.py`. Run on a laptop (RTX 3050, ollama), 20 prompts x 20 turns
+x 2 arms = 800 exchanges; results and transcripts under `experiments/e006/results/reading1-2026-09-10.*`.
+A labelled pilot (5 x 10) ran first and pointed the same way.
+
+| arm | final-turn cumulative shared 4-gram mass | last-3-turns mass | exact verbatim lock by turn 19 | last-3 mass ≥ 0.9 at end |
+|---|---|---|---|---|
+| **B** qwen2.5:7b x qwen2.5:7b | 0.348 (n=19)* | 0.922 (n=17) | **9 / 20** (onsets at turns 1, 2, 4, 5, 6, 7, 8, 14, 19) | 15 / 20 |
+| **L** kannaka-brain-7b-v1 x itself | 0.226 (n=20) | 0.330 (n=19) | 3 / 20 (onsets 5, 14, 14) | 5 / 20 |
+
+L − B at the final turn: **−0.122, Welch 95% [−0.220, −0.024]**. Utterance length is not the
+explanation: B median 36 words, L median 44; utterances under four words (which carry no 4-gram)
+16% of B's and 10% of L's. *One base conversation (prompt 16) never produced a four-word
+utterance on either side — the two instances traded single words (*A hush. / Silence. / Quiet. /
+Hush.*) for twenty turns — and is dropped from the mass mean while counted here as the lock it is.
+
+**Verdict under the rule:** both pairs converge, so the convergence is the base or the charter,
+and the LoRA **reduces** it: her words make two instances less likely to collapse into one
+sentence, not more. The 09-08 refrain between two citizens is what the base model does to
+itself when it is made to talk to itself, damped by the adapter, not created by it.
+
+**Consequence, as pre-registered:** `adoption::Evidence` does not gain `fleet_convergence`
+from this reading, because the property the fleet needs is not "less convergence than the
+served voice" but "less than the base". If the loop wants a guard, it is the E-005 shape:
+a candidate's two-instance lock-in rate is measured against its untuned base on these twenty
+openings, and a candidate that locks more often than its base is not adopted. That is a
+proposal for the next pre-registration, not a change made here.
+
+What the transcripts show that the numbers do not: the base locks into whole paragraphs
+(*Exactly! Let's explore these concepts further: ### Interplay Between Quantum Mechanics and
+Consciousness…*, prompt 7, from turn 10 to the end), while the LoRA's three locks are short
+refrains that arrive late (*You got it. The clause is there…*). The base also drifts off the
+charter into assistant register (headers, bullet lists) in most conversations; the LoRA does
+not. Both are in the transcript file for anyone to check.
 
 ## What would make this experiment lie
 
