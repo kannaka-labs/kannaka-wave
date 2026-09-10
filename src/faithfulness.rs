@@ -259,11 +259,24 @@ pub fn anchors_of(claim: &str) -> Vec<String> {
     out
 }
 
+/// Lower-cased alphanumeric tokens, each also present without one trailing
+/// `s`, so "UUIDs" matches "UUID" and "memories" does not match "memory"
+/// (that is a different word, and it is fine for it not to match).
 fn tokens(text: &str) -> HashSet<String> {
-    text.split(|c: char| !c.is_alphanumeric())
+    let mut out = HashSet::new();
+    for t in text
+        .split(|c: char| !c.is_alphanumeric())
         .filter(|t| !t.is_empty())
-        .map(|t| t.to_lowercase())
-        .collect()
+    {
+        let l = t.to_lowercase();
+        if let Some(stem) = l.strip_suffix('s') {
+            if stem.len() >= 3 {
+                out.insert(stem.to_string());
+            }
+        }
+        out.insert(l);
+    }
+    out
 }
 
 /// Grade one claim against the recalled rows by its anchors. Pure.
@@ -280,7 +293,12 @@ pub fn grade_by_anchors(claim: &str, recalled: &[Recalled]) -> Support {
     let mut missing = Vec::new();
     let mut best: Option<(usize, Id)> = None;
     for a in &anchors {
-        let parts: Vec<String> = tokens(a).into_iter().collect();
+        // The anchor's own tokens, unstemmed; the rows carry both forms.
+        let parts: Vec<String> = a
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|t| !t.is_empty())
+            .map(|t| t.to_lowercase())
+            .collect();
         let found = row_tokens
             .iter()
             .any(|(_, toks)| parts.iter().all(|p| toks.contains(p)));
@@ -510,6 +528,18 @@ mod tests {
             vec!["Nick", "Flaukowski", "GSP-025"]
         );
         assert_eq!(anchors_of("I remember the vault."), Vec::<String>::new());
+        // A plural of a stored token is the same anchor.
+        let r = vec![Recalled {
+            id: Id(4),
+            text: "Built import-json with UUID preservation.".into(),
+            via: None,
+            similarity: 0.5,
+            resonance: None,
+        }];
+        assert_eq!(
+            grade_by_anchors("I preserved UUIDs across environments.", &r),
+            Support::Grounded { row: Id(4) }
+        );
         assert_eq!(
             anchors_of("That is the connection: Kannaka listened."),
             vec!["Kannaka"]

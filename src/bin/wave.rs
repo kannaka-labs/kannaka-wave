@@ -220,7 +220,17 @@ fn main() {
                 eprintln!("faithfulness:");
                 for c in &rep.claims {
                     let tag = match &c.support {
-                        Support::Grounded { .. } => "grounded".to_string(),
+                        Support::Grounded { row } => {
+                            let by_proposal = a
+                                .recalled
+                                .iter()
+                                .any(|r| r.id == *row && r.text.starts_with(PROPOSED_CLASS));
+                            if by_proposal {
+                                "grounded BY A DREAM PROPOSAL".to_string()
+                            } else {
+                                "grounded".to_string()
+                            }
+                        }
                         Support::Unsupported { missing } => {
                             format!("UNSUPPORTED (missing: {})", missing.join(", "))
                         }

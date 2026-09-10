@@ -138,13 +138,21 @@ impl OllamaVoice {
         if facets.is_empty() {
             p.push_str("Memories: none were recalled for this question.\n\n");
         } else {
-            p.push_str("Memories, strongest first:\n");
+            p.push_str(
+                "Memories, strongest first. A line marked (proposed in a dream, unverified) is a \
+                 connection you once imagined, not something that happened.\n",
+            );
             for (i, r) in facets.iter().enumerate() {
+                let (text, tag) = match r.text.strip_prefix(crate::store::PROPOSED_CLASS) {
+                    Some(rest) => (rest, " (proposed in a dream, unverified)"),
+                    None => (r.text.as_str(), ""),
+                };
                 p.push_str(&format!(
-                    "{}. [{:.2}] {}\n",
+                    "{}. [{:.2}] {}{}\n",
                     i + 1,
                     r.similarity,
-                    one_line(&r.text)
+                    one_line(text),
+                    tag
                 ));
             }
             p.push('\n');
@@ -391,6 +399,17 @@ mod tests {
         assert_eq!(v.speak("where is the vault?", &r), "I remember the vault.");
         let req = seen.join().unwrap();
         assert!(req.contains("1. [0.71] The escrow vault runs on the same block."));
+        let proposed = vec![Recalled {
+            id: Id(10),
+            text: "proposed: the vault and the harbour close alike".into(),
+            via: None,
+            similarity: 0.4,
+            resonance: None,
+        }];
+        let p = OllamaVoice::speak_prompt("q?", &proposed);
+        assert!(p.contains(
+            "1. [0.40] the vault and the harbour close alike (proposed in a dream, unverified)"
+        ));
         assert!(req.contains("Question: where is the vault?"));
 
         let (port, _) =
