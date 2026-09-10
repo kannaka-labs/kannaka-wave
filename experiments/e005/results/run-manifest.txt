@@ -1,0 +1,6 @@
+started: 2026-09-10T18:43:05Z
+gpu: NVIDIA A100-SXM4-80GB
+ollama: ollama version is 0.34.0 NUM_PARALLEL=4
+arms: A=kannaka-brain-7b-v1 (from hf.co/flaukowski/kannaka-brain-7b-v1-GGUF) B=qwen2.5:7b; judge qwen2.5:7b first 10 per set; top-k 8; voice timeout 900 s; temperature 0.3 / 400 tokens (crate defaults)
+store: 9619767ad0db56b3  probes: 900ded03606434ce  wave: b5cc5d54b4504278
+finished: 2026-09-10T19:01:06Z

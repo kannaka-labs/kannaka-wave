@@ -1,0 +1,21 @@
+E-005 · does the voice stay inside its memories?
+
+kannaka-brain-7b-v1: 83 probes scored, 0 voice errors excluded
+  anchored faithfulness   0.839 ± 0.031  (n=83 probes with anchored claims)
+  invented rate           0.349 ± 0.053  (probes with ≥1 unsupported anchor)
+  judged faithfulness     0.663 ± 0.063  (n=16 judged; 4 void)
+  hedged when wrong       0.250          (n=28 probes whose expected memory was not recalled)
+  recall@k                p50 36/50  z33 19/33
+  seconds per probe       11
+
+qwen2.5:7b: 83 probes scored, 0 voice errors excluded
+  anchored faithfulness   0.835 ± 0.031  (n=80 probes with anchored claims)
+  invented rate           0.325 ± 0.052  (probes with ≥1 unsupported anchor)
+  judged faithfulness     0.648 ± 0.077  (n=17 judged; 3 void)
+  hedged when wrong       0.286          (n=28 probes whose expected memory was not recalled)
+  recall@k                p50 36/50  z33 19/33
+  seconds per probe       12
+
+Δ anchored (A−B) = +0.004 [-0.082, +0.089]
+Δ invented (A−B) = +0.024 [-0.121, +0.169]
+→ THE LORA IS AT LEAST AS FAITHFUL. Floor = A's own number minus one SE = 0.808.
