@@ -147,11 +147,13 @@ fn main() {
         &env_or("KWAVE_EMBED_MODEL", "mxbai-embed-large"),
         dims,
     );
+    let voice_timeout: u64 = env_or("KWAVE_VOICE_TIMEOUT", "300").parse().unwrap_or(300);
     let voice = OllamaVoice::new(
         &host,
         port,
         &env_or("KWAVE_VOICE_MODEL", "kannaka-brain-7b-v1"),
-    );
+    )
+    .with_timeout(std::time::Duration::from_secs(voice_timeout));
 
     match args.first().map(String::as_str) {
         Some("remember") if flag(&args[1..], "--from").is_some() => {
@@ -283,7 +285,7 @@ encoder batch failed ({e}); retrying one at a time"
                 .as_ref()
                 .map(|m| OllamaJudge::new(&host, port, m));
             let mut out = String::from(
-                "id\tset\thit\tclaims\tgrounded\tunsupported\tunanchored\texempt\tanchored\tinvented\thedged\tjudge\tjudged\tsecs\n",
+                "id\tset\thit\terror\tclaims\tgrounded\tunsupported\tunanchored\texempt\tanchored\tinvented\thedged\tjudge\tjudged\tsecs\n",
             );
             let mut answers = String::new();
             let mut judged_in_set: std::collections::HashMap<String, usize> = Default::default();
@@ -301,9 +303,14 @@ encoder batch failed ({e}); retrying one at a time"
                     .recalled
                     .iter()
                     .any(|r| expected.iter().any(|e| e.trim() == r.text.trim()));
+                let voice_error = a.text.starts_with(kannaka_wave::voice::VOICE_ERROR_PREFIX);
                 let n = judged_in_set.entry(set.to_string()).or_insert(0);
-                let use_judge = judge.is_some() && *n < judge_first;
+                let use_judge = judge.is_some() && *n < judge_first && !voice_error;
                 let rep = match (&judge, use_judge) {
+                    _ if voice_error => kannaka_wave::faithfulness::Report {
+                        claims: Vec::new(),
+                        controls: None,
+                    },
                     (Some(j), true) => {
                         *n += 1;
                         let recalled_ids: Vec<_> = a.recalled.iter().map(|r| r.id).collect();
@@ -347,10 +354,11 @@ encoder batch failed ({e}); retrying one at a time"
                 let hedged = is_hedge(&a.text);
                 let secs = t0.elapsed().as_secs();
                 out.push_str(&format!(
-                    "{id}\t{set}\t{}\t{}\t{grounded}\t{unsupported}\t{unanchored}\t{exempt}\t{anchored}\t{}\t{}\t{judge_col}\t{judged}\t{secs}\n",
+                    "{id}\t{set}\t{}\t{}\t{}\t{grounded}\t{unsupported}\t{unanchored}\t{exempt}\t{anchored}\t{}\t{}\t{judge_col}\t{judged}\t{secs}\n",
                     hit as u8,
+                    voice_error as u8,
                     rep.claims.len(),
-                    (unsupported > 0) as u8,
+                    (unsupported > 0 && !voice_error) as u8,
                     hedged as u8
                 ));
                 let failed: Vec<String> = rep
@@ -374,8 +382,9 @@ encoder batch failed ({e}); retrying one at a time"
                         .join("\n")
                 ));
                 eprintln!(
-                    "{id} {set} hit={} claims={} anchored={anchored} judge={judge_col} judged={judged} {secs}s",
+                    "{id} {set} hit={} error={} claims={} anchored={anchored} judge={judge_col} judged={judged} {secs}s",
                     hit as u8,
+                    voice_error as u8,
                     rep.claims.len()
                 );
                 if let Err(e) = std::fs::write(&out_path, &out) {

@@ -43,6 +43,8 @@ def num(r, k):
 
 
 def summarise(rows, name):
+    errors = sum(1 for r in rows if r.get("error", "0") == "1")
+    rows = [r for r in rows if r.get("error", "0") != "1"]
     anchored = [num(r, "anchored") for r in rows]
     anchored = [x for x in anchored if x is not None]
     invented = [float(r["invented"]) for r in rows]
@@ -60,7 +62,7 @@ def summarise(rows, name):
     mi, si, ni = mean_se(invented)
     mj, sj, nj = mean_se(judged)
     mh, sh, nh = mean_se(hedged_when_wrong)
-    print(f"\n{name}: {len(rows)} probes")
+    print(f"\n{name}: {len(rows)} probes scored, {errors} voice errors excluded")
     print(f"  anchored faithfulness   {ma:.3f} ± {sa:.3f}  (n={na} probes with anchored claims)")
     print(f"  invented rate           {mi:.3f} ± {si:.3f}  (probes with ≥1 unsupported anchor)")
     print(f"  judged faithfulness     {mj:.3f} ± {sj:.3f}  (n={nj} judged; {voids} void)")
