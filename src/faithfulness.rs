@@ -262,6 +262,15 @@ pub fn anchors_of(claim: &str) -> Vec<String> {
 /// Lower-cased alphanumeric tokens, each also present without one trailing
 /// `s`, so "UUIDs" matches "UUID" and "memories" does not match "memory"
 /// (that is a different word, and it is fine for it not to match).
+/// Is `part` in the row's tokens, allowing the part to be the plural of one?
+fn has(toks: &HashSet<String>, part: &str) -> bool {
+    toks.contains(part)
+        || part
+            .strip_suffix('s')
+            .map(|stem| stem.len() >= 3 && toks.contains(stem))
+            .unwrap_or(false)
+}
+
 fn tokens(text: &str) -> HashSet<String> {
     let mut out = HashSet::new();
     for t in text
@@ -301,7 +310,7 @@ pub fn grade_by_anchors(claim: &str, recalled: &[Recalled]) -> Support {
             .collect();
         let found = row_tokens
             .iter()
-            .any(|(_, toks)| parts.iter().all(|p| toks.contains(p)));
+            .any(|(_, toks)| parts.iter().all(|p| has(toks, p)));
         if !found {
             missing.push(a.clone());
         }
@@ -309,7 +318,11 @@ pub fn grade_by_anchors(claim: &str, recalled: &[Recalled]) -> Support {
     for (id, toks) in &row_tokens {
         let n = anchors
             .iter()
-            .filter(|a| tokens(a).iter().all(|p| toks.contains(p)))
+            .filter(|a| {
+                a.split(|c: char| !c.is_alphanumeric())
+                    .filter(|t| !t.is_empty())
+                    .all(|p| has(toks, &p.to_lowercase()))
+            })
             .count();
         if best.map(|(bn, _)| n > bn).unwrap_or(true) {
             best = Some((n, *id));
