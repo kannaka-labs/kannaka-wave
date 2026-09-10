@@ -1,0 +1,11 @@
+
+L: final-turn cumulative mass mean 0.1389 (n=5), last-3-turns mass mean 0.0247
+
+utterance length (words), per arm:
+  B: mean 38.4  median 24  under-4-words 0/100 (0%)
+  L: mean 40.9  median 42  under-4-words 8/100 (8%)
+  B: conversations whose final two utterances are identical: 2/5
+  L: conversations whose final two utterances are identical: 0/5
+
+L - B at final turn: -0.1821  SE 0.0890  Welch 95% [-0.3565, -0.0076]
+verdict: the LoRA pair converges LESS than its base pair (interval excludes zero).
