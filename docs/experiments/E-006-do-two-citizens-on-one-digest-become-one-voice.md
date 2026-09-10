@@ -27,7 +27,7 @@ only with a control that shares one and not the other.
 | interval | bootstrap over documents within each author, 200 resamples, 2.5/97.5 percentiles | small authors; no normality assumed |
 | window | reading 0: artifacts created ≥ 2026-08-27, ≤ 40 per author | what the gallery held on 09-10 |
 
-## The decision rule, fixed now
+## Decision rule, fixed now
 
 Let W = mean shared-4-gram mass over BRAIN×BRAIN ordered pairs, C = the same over
 CONTROL×CONTROL, with bootstrap intervals.
