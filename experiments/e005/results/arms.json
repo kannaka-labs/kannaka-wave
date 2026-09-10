@@ -1,0 +1,16 @@
+{
+ "status": "complete",
+ "elapsed_min": 19,
+ "experiment": "E-005",
+ "arms": {
+  "kannaka-brain-7b-v1": {
+   "rows": 83,
+   "errors": 0
+  },
+  "qwen2.5-7b": {
+   "rows": 83,
+   "errors": 0
+  }
+ },
+ "report": "E-005 \u00b7 does the voice stay inside its memories?\n\nkannaka-brain-7b-v1: 83 probes scored, 0 voice errors excluded\n  anchored faithfulness   0.839 \u00b1 0.031  (n=83 probes with anchored claims)\n  invented rate           0.349 \u00b1 0.053  (probes with \u22651 unsupported anchor)\n  judged faithfulness     0.663 \u00b1 0.063  (n=16 judged; 4 void)\n  hedged when wrong       0.250          (n=28 probes whose expected memory was not recalled)\n  recall@k                p50 36/50  z33 19/33\n  seconds per probe       11\n\nqwen2.5:7b: 83 probes scored, 0 voice errors excluded\n  anchored faithfulness   0.835 \u00b1 0.031  (n=80 probes with anchored claims)\n  invented rate           0.325 \u00b1 0.052  (probes with \u22651 unsupported anchor)\n  judged faithfulness     0.648 \u00b1 0.077  (n=17 judged; 3 void)\n  hedged when wrong       0.286          (n=28 probes whose expected memory was not recalled)\n  recall@k                p50 36/50  z33 19/33\n  seconds per probe       12\n\n\u0394 anchored (A\u2212B) = +0.004 [-0.082, +0.089]\n\u0394 invented (A\u2212B) = +0.024 [-0.121, +0.169]\n\u2192 THE LORA IS AT LEAST AS FAITHFUL. Floor = A's own number minus one SE = 0.808.\n"
+}

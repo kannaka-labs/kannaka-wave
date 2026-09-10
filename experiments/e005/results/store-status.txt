@@ -1,0 +1,1 @@
+/home/jovyan/kannaka-p2/data/store.kwave: 1945 rows, 615 parents, 1024-d, format v1

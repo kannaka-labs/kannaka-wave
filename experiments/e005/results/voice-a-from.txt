@@ -1,0 +1,1 @@
+FROM /home/jovyan/ollama/models/blobs/sha256-db82f56476825b77c9d69baef71e67e15e353f711530104683c944f3c3e84985

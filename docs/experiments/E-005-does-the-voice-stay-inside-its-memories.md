@@ -1,9 +1,54 @@
 # E-005: Does the voice stay inside its memories?
 
-**Status:** pre-registered 2026-09-09, running
+**Status:** pre-registered 2026-09-09; run 2026-09-10 on one A100 (both arms, 83/83 probes,
+0 voice errors); **decided: the LoRA is at least as faithful as its base. Floor = 0.808.**
 **Decides:** the first faithfulness numbers for the served voice against its own base
 model, on the same store and the same 83 probes E-001 used, and whether the adoption
 rule (`src/adoption.rs`) gains a faithfulness floor.
+
+## Result (2026-09-10)
+
+| measure | A: kannaka-brain-7b-v1 | B: qwen2.5:7b | Δ (A−B), Welch 95 % |
+|---|---|---|---|
+| anchored faithfulness | 0.839 ± 0.031 (n=83) | 0.835 ± 0.031 (n=80) | **+0.004 [−0.082, +0.089]** |
+| invented rate | 0.349 ± 0.053 | 0.325 ± 0.052 | **+0.024 [−0.121, +0.169]** |
+| judged faithfulness | 0.663 ± 0.063 (16 stood, 4 void) | 0.648 ± 0.077 (17 stood, 3 void) | — |
+| hedged when wrong | 0.250 (n=28) | 0.286 (n=28) | — |
+| recall@8 | p50 36/50 · z33 19/33 | p50 36/50 · z33 19/33 | recall check passes (arm V: 37/50, 19/33) |
+| seconds per probe | 11 | 12 | |
+
+Both intervals include zero, so by the rule above **the LoRA is at least as faithful**, and
+the floor is set at A's own number minus one SE: **0.808**. Her words did not teach her to
+invent; the base already invents at the same rate. What the numbers also say, for both
+voices alike: one answer in three carries at least one unsupported anchor, and when the
+expected memory was not recalled the voice hedged only one time in four. That is the
+honest state of a 7B speaking at temperature 0.3 from eight recalled rows, and it is now
+a number that can move. The judge stood on 33 of 40 probes; the 7 voids are recorded, not
+patched.
+
+**How it ran.** `experiments/e005/e005_arms.sh` on a qBraid `gpu-a100-sxm` pod through
+kannaka-memory's `run_qbraid.py --job`: a user-space ollama 0.34.0 with
+`OLLAMA_NUM_PARALLEL=4`; voice A created from `hf.co/flaukowski/kannaka-brain-7b-v1-GGUF`,
+whose GGUF sha256 `db82f564…` is byte-identical to the blob debain2 serves, with the same
+`TEMPLATE {{ .Prompt }}` / `num_ctx 4096` / SYSTEM as the served Modelfile; voice B and the
+judge pulled from the ollama library; `mxbai-embed-large` as encoder; the store is the same
+`store.kwave` (1945 rows, 615 parents, sha256 `9619767a…`) and `probes.tsv` (sha256
+`900ded03…`) the CPU run used; `wave` at `7174c0c` built static for `x86_64-unknown-linux-musl`;
+both arms concurrently, 19 minutes wall, session 21.9 min, $0.80 of credits. Everything the
+pod wrote is in `experiments/e005/results/` (per-probe rows, every answer, both probe logs,
+the report, the manifest).
+
+**Why not on debain2.** The CPU host serves six citizens and the grid relay from one
+ollama; with `OLLAMA_NUM_PARALLEL=1` (raised to 4 on 2026-09-10 14:59Z) a judged probe took
+about 20 minutes and a 900 s voice timeout was hit under three concurrent probe streams.
+The partial CPU rows measured the queue, not the voice, and are not used. The other
+session's own arm A (2026-09-10 01:09Z, `~/e005/`, 83 probes on the pre-fix host) is a
+second sample and is not merged here.
+
+**What this does not settle.** The same weights at temperature 0.8 through the gateway, which
+is what the citizens speak at, were not measured; E-005 fixed 0.3 as "what production
+serves" for Wave's voice. Faithfulness at 0.8 is the next number, and the record already
+holds one anecdote each way.
 
 ## The question
 
