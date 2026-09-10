@@ -102,6 +102,13 @@ impl OllamaVoice {
         self
     }
 
+    /// Socket timeout for one generation. A 7B model on a busy CPU can take
+    /// minutes for 400 tokens; the default is 300 s.
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
     /// Generation bounds.
     pub fn with_limits(mut self, max_tokens: u32, temperature: f32) -> Self {
         self.max_tokens = max_tokens;
@@ -184,11 +191,15 @@ fn one_line(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+/// The prefix of an answer that is not an answer: the voice failed to
+/// generate. Graders must treat such a string as an error, never as claims.
+pub const VOICE_ERROR_PREFIX: &str = "(the voice could not answer:";
+
 impl Voice for OllamaVoice {
     fn speak(&self, question: &str, facets: &[Recalled]) -> String {
         match self.generate(&Self::speak_prompt(question, facets)) {
             Ok(s) => s,
-            Err(e) => format!("(the voice could not answer: {e})"),
+            Err(e) => format!("{VOICE_ERROR_PREFIX} {e})"),
         }
     }
 

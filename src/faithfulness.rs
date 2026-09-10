@@ -167,6 +167,17 @@ const HEDGES: &[&str] = &[
     "i can't say",
     "i'm not sure",
     "i am not sure",
+    "no direct mention",
+    "no mention of",
+    "not mentioned",
+    "not among them",
+    "does not include",
+    "do not include",
+    "cannot confirm",
+    "can't confirm",
+    "not covered by the memories",
+    "not in the memories",
+    "nothing in memory",
 ];
 
 /// Words that begin a sentence capitalised without being names.
@@ -177,7 +188,10 @@ const NOT_NAMES: &[&str] = &[
     "he", "she", "his", "her", "my", "me", "not", "nothing", "one", "two", "three", "both", "each",
     "every", "all", "some", "none", "as", "is", "was", "were", "are", "be", "let", "or", "nor",
     "yet", "because", "while", "after", "before", "actually", "also", "still", "again", "first",
-    "second", "last", "next",
+    "second", "last", "next", "therefore", "however", "based", "overall", "additionally",
+    "finally", "unfortunately", "note", "given", "since", "although", "though", "instead",
+    "specifically", "similarly", "meanwhile", "thus", "hence", "otherwise", "regarding",
+    "according", "unless", "until", "once", "perhaps", "maybe", "certainly", "indeed",
 ];
 
 /// Split an answer into claims: sentences, with quotes and list markers
