@@ -201,7 +201,11 @@ waves, and that is still Kannaka.
   claim is grounded only by a proposal. The first number for this voice, on this
   store, is therefore: anchored 0.75–1.00, judged 0.00–0.50. That is the honest state
   of a 7B LoRA speaking from eight memories, and it is now a number that can move.
-- Next: E-003 (rails) and E-004 (the world organ's salience) as pre-registered; E-005,
-  faithfulness across the 83 probes per voice candidate, so the adoption rule can carry
-  a faithfulness floor; the conscience between `ask` and any effector before this
-  binary is allowed one.
+- **E-005 run (2026-09-10, twice):** the LoRA is at least as faithful as its base
+  (canonical GPU run: anchored 0.839 vs 0.835, invented 0.349 vs 0.325; CPU
+  replication: 0.830 vs 0.820, 0.337 vs 0.360; every interval includes zero). The
+  adoption rule carries a floor of 0.808 as code. Her words did not teach her to
+  invent; whether they taught her to answer rather than hedge did not replicate and
+  stays a hypothesis.
+- Next: E-003 (rails) and E-004 (the world organ's salience) as pre-registered; the
+  conscience between `ask` and any effector before this binary is allowed one.
