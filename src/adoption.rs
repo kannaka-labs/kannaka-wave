@@ -29,10 +29,18 @@ pub struct Evidence {
     pub external_agrees: Option<bool>,
     /// Held-out perplexity of the candidate. Reported. Never gates.
     pub perplexity: f32,
+    /// Anchored faithfulness on the E-005 probes, if measured. A candidate
+    /// below [`FAITHFULNESS_FLOOR`] is refused whatever the judge said.
+    pub faithfulness_anchored: Option<f32>,
 }
 
+/// E-005's floor: the served voice's anchored faithfulness minus one SE
+/// (0.839 − 0.031 on the canonical GPU run; the CPU replication gave 0.798).
+/// A candidate may not regress below it.
+pub const FAITHFULNESS_FLOOR: f32 = 0.808;
+
 /// What the rule decided.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Decision {
     /// Serve the candidate.
     Adopt,
@@ -47,6 +55,14 @@ pub enum Decision {
     },
     /// The external evaluator has not run. Nothing changes until it has.
     Waiting,
+    /// Measured faithfulness is under the floor: refused regardless of the
+    /// judge and the external evaluator.
+    BelowFloor {
+        /// What was measured.
+        measured: f32,
+        /// The floor it failed.
+        floor: f32,
+    },
 }
 
 /// Apply the rule.
@@ -60,6 +76,14 @@ pub fn decide(e: &Evidence) -> Decision {
         return Decision::VoidJudge {
             control: "foreign: the judge preferred a foreign model to the served voice",
         };
+    }
+    if let Some(f) = e.faithfulness_anchored {
+        if f < FAITHFULNESS_FLOOR {
+            return Decision::BelowFloor {
+                measured: f,
+                floor: FAITHFULNESS_FLOOR,
+            };
+        }
     }
     match (e.judge_prefers_candidate, e.external_agrees) {
         (_, None) => Decision::Waiting,
@@ -79,7 +103,27 @@ mod tests {
             judge_rejects_foreign: true,
             external_agrees: Some(true),
             perplexity: 4.0,
+            faithfulness_anchored: Some(0.84),
         }
+    }
+
+    #[test]
+    fn a_candidate_under_the_faithfulness_floor_is_refused_whatever_else_says() {
+        assert!(matches!(
+            decide(&Evidence {
+                faithfulness_anchored: Some(0.70),
+                ..good()
+            }),
+            Decision::BelowFloor { measured, floor } if (measured - 0.70).abs() < 1e-6 && floor == FAITHFULNESS_FLOOR
+        ));
+        assert_eq!(
+            decide(&Evidence {
+                faithfulness_anchored: None,
+                ..good()
+            }),
+            Decision::Adopt,
+            "unmeasured is not refused; the floor applies to a measurement"
+        );
     }
 
     #[test]

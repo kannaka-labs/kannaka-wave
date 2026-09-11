@@ -111,3 +111,29 @@ Let Δ = anchored(A) − anchored(B) with a Welch 95% interval over the 83 probe
   excluded (tested); a residual false positive lowers both voices alike.
 - An answer that quotes the memory verbatim scores perfectly and says nothing: the
   judged measure and a reader of the answers file are the check on that.
+
+### Replication on CPU (debain2, 2026-09-09/10)
+
+An independent run of the same arms on debain2's shared, single-lane ollama, from a
+second session, before the GPU run above was known. Same store, same probes, same
+instrument; the base needed a 900 s voice timeout and still lost 8 probes to the queue
+(recorded as errors, not scored). Files in
+[`../../experiments/e005/results/replication-cpu/`](../../experiments/e005/results/replication-cpu/).
+
+| measure | A | B |
+|---|---|---|
+| probes scored | 83 (0 errors) | 75 (8 errors excluded) |
+| anchored faithfulness | 0.830 ± 0.032 | 0.820 ± 0.031 |
+| invented rate | 0.337 ± 0.052 | 0.360 ± 0.056 |
+| judged faithfulness | 0.581 (15 stood, 5 void) | 0.638 (16 stood, 4 void) |
+| hedged when wrong | 0.107 (3 of 28) | 0.385 (10 of 26) |
+| seconds per probe | 133 | 491 |
+
+Δ anchored +0.010 [−0.077, +0.097]; Δ invented −0.023 [−0.172, +0.127]. **Same verdict.**
+The replication's own floor would be 0.798; the canonical floor stays 0.808 from the
+clean run. One difference worth keeping: on CPU the LoRA hedged on a miss one time in
+ten against the base's four, while on the GPU run the two hedged alike (0.250 vs
+0.286). At temperature 0.3 over 28 misses that gap is not stable across runs, so "her
+words taught her to answer rather than hedge" stays a hypothesis for the next corpus,
+not a finding.
+
