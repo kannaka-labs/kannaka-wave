@@ -108,10 +108,15 @@ itself when it is made to talk to itself, damped by the adapter, not created by 
 
 **Consequence, as pre-registered:** `adoption::Evidence` does not gain `fleet_convergence`
 from this reading, because the property the fleet needs is not "less convergence than the
-served voice" but "less than the base". If the loop wants a guard, it is the E-005 shape:
-a candidate's two-instance lock-in rate is measured against its untuned base on these twenty
-openings, and a candidate that locks more often than its base is not adopted. That is a
-proposal for the next pre-registration, not a change made here.
+served voice" but "less than the base". If the loop wants a guard, it is the E-005 shape —
+and since this reading was taken, E-005 has made that shape concrete in code:
+`Evidence::faithfulness_anchored` with a `FAITHFULNESS_FLOOR` and a `Decision::BelowFloor`
+that refuses a candidate whatever the judge said (`src/adoption.rs`). The convergence guard
+would be the same three pieces: a measured `lock_in_rate: Option<f32>` on the candidate,
+a floor that is **its own base's rate on these twenty openings** rather than a constant, and
+a refusal that outranks the judge. It is written as a proposal and not built here for one
+reason: unlike faithfulness, the floor is not a number but a second measurement, so adopting
+it means every candidate run costs a base run too. That is the trade for whoever decides.
 
 What the transcripts show that the numbers do not: the base locks into whole paragraphs
 (*Exactly! Let's explore these concepts further: ### Interplay Between Quantum Mechanics and
