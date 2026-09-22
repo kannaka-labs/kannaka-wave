@@ -12,7 +12,7 @@ day is data.
 | file | role |
 |---|---|
 | `harness/` | Rust. Links `kannaka-wave` (the substrate E-001 promoted, the facet decomposer, the encoder client, ADR-0040's operator with `Drive::Error`) and `consciousness-core` (E-001's Φ instrument). `selftest` runs the guards on synthetic streams. `prepare` embeds every event, facet and probe once into one cache. `train` fits the predictor and applies the adoption rule. `run` is one seed of one arm: absorb days 21–30 with a dream per day, then the E-007 survival numbers, the E-004 recall@10 numbers, and Φ. |
-| `check.py` | Not this experiment: E-003's pre-run check lives in `../e003/`. |
+| `report.py` | Means, standard errors, Welch intervals, the guards, and each experiment's decision rule applied verbatim (E-004 with Amendments 1 and 2; E-007 with its exit from the undecided branch). Checked against fixture runs shaped Kept, Declined, Undecided, Void and guard-failed. |
 | `results/census-2026-09-22.txt` | The bus census that found the retired window and the missing ground truth. |
 
 The product crate (`kannaka-wave` at the repo root) has no dependencies by
@@ -72,5 +72,5 @@ stream it does (0.0015 against 0.0589). The collapse floor stays at ⅓.
 - `vectors.bin`: `prepare`'s cache. `mxbai-embed-large` at 1024-d, E-001's
   encoder, over ollama.
 
-`report.py` (to be written against real run JSONs) applies each experiment's
-decision rule verbatim.
+`python report.py --runs <dir>` applies each experiment's decision rule verbatim
+and writes `report.json` beside the runs.
