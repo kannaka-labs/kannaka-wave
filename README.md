@@ -66,8 +66,9 @@ experience → facets → substrate → dream (consolidate, propose, forget)
 - `docs/experiments/E-003` — the bridge operator at the conscience boundary.
   **Declined** on a pre-run check: the registered residue is the constant 0.190983 for
   every action (`experiments/e003/`).
-- `docs/experiments/E-004` — whether surprise picks what to remember. Pre-registered,
-  not yet run, unblocked.
+- `docs/experiments/E-004` — whether surprise picks what to remember. Pre-registered;
+  a pre-run check found no ground truth on record to score it against. The salience
+  operator it needs is `src/novelty.rs`.
 
 ```sh
 cargo test

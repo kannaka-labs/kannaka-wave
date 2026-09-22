@@ -1,0 +1,26 @@
+E-004 pre-run census, 2026-09-22. Aggregates only: the raw export is memory content and is not committed.
+Source: nats ninja-portal MCP query_messages on KANNAKA.events.memory.> and KANNAKA.events.dream.>,
+in day windows under the 500-message cap; seq 200-3203 contiguous; stream_stats reported 3025, 21 unaccounted.
+
+memory events: 3004   dream digests: 591
+verbs: {'remember': 3004}
+payload fields: ['agent_id', 'content', 'event_id', 'importance', 'memory_id', 'modality', 'schema_version', 'ts']
+agents: 556 (543 seen once); top: [('grid-colony-one', 1771), ('Kannaka', 409), ('agent-1a6bb2ee', 129), ('skywave', 39), ('agent-8cc7668d', 31), ('0xSCADA-QE', 22)]
+
+per UTC day, 2026-07-01..09-22 (0 = no events):
+  07-01   77  07-02   12  07-03    0  07-04    5  07-05    4  07-06   13  07-07  327
+  07-08    3  07-09  104  07-10    0  07-11    5  07-12    0  07-13    0  07-14   33
+  07-15    0  07-16    0  07-17    0  07-18   14  07-19    6  07-20    0  07-21    0
+  07-22    5  07-23    1  07-24   13  07-25    4  07-26   36  07-27   24  07-28    8
+  07-29    1  07-30   17  07-31    1  08-01   12  08-02    7  08-03    1  08-04    0
+  08-05    0  08-06   18  08-07   28  08-08    0  08-09    0  08-10   12  08-11    1
+  08-12    6  08-13    2  08-14    2  08-15    0  08-16    0  08-17    7  08-18    0
+  08-19    0  08-20    0  08-21    0  08-22   11  08-23   19  08-24   23  08-25   61
+  08-26   19  08-27    4  08-28   13  08-29    4  08-30   21  08-31   16  09-01   17
+  09-02   19  09-03    4  09-04    4  09-05   82  09-06  120  09-07   91  09-08  229
+  09-09  838  09-10  322  09-11   16  09-12   17  09-13   48  09-14   31  09-15   39
+  09-16   53  09-17   41  09-18    7  09-19    5  09-20    5  09-21    4  09-22   12
+
+zero days: 19; longest run with >=1 event/day: 32 days ending 2026-09-22
+days 1-20 (train) 08-22..09-10: 1917 events, 1622 (85%) from grid-colony-one
+days 21-30 (held out) 09-11..09-20: 262 events, 149 (57%) from grid-colony-one
