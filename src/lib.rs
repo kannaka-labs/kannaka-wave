@@ -30,6 +30,7 @@ pub mod encoder;
 pub mod facet;
 pub mod faithfulness;
 mod http;
+pub mod novelty;
 mod sha256;
 pub mod store;
 pub mod voice;
@@ -189,8 +190,9 @@ pub trait World {
     /// The raw drive for surprise: how far the world landed from the
     /// prediction, in the encoder's space. Zero when exact, never negative.
     /// This is the *distance*; the salience signal is the fast-minus-slow
-    /// response to it (ADR-0040), so a constant stream yields zero salience
-    /// even though each step has a distance.
+    /// response to it ([`novelty::Drive::Error`], ADR-0040's operator with the
+    /// sign an error needs), so a constant stream yields zero salience even
+    /// though each step has a distance.
     fn surprise(&self, predicted: &Vector, observed: &Vector) -> f32 {
         debug_assert_eq!(predicted.0.len(), observed.0.len());
         predicted
