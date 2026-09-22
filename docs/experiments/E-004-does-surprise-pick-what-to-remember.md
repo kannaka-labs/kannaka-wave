@@ -1,6 +1,10 @@
 # E-004: Does surprise pick what to remember?
 
-**Status:** pre-registered; unblocked 2026-09-09 when E-001 promoted the vector store (runs on the substrate E-001 promotes)
+**Status:** pre-registered; unblocked 2026-09-09 when E-001 promoted the vector store.
+**Pre-run check 2026-09-22: blocked on ground truth.** The world stream exists; the
+"load-bearing" labels the decision rule is scored on do not, in any source on record. The
+salience operator is built (`src/novelty.rs`) with a sign correction. Nothing has run.
+See §Pre-run check.
 **Decides:** whether a latent world model's prediction error, as ADR-0002's salience
 signal, keeps more of what later mattered than a stated retention policy alone.
 
@@ -102,3 +106,72 @@ were load-bearing (precision of what was kept), and Φ on the shared E-001 instr
   becomes a monument to the noisiest channel. The constant-stream guard catches the
   operator being missing; it does not catch it being bypassed by a later edit. The
   harness reads the operator's output, not the distance.
+
+## Pre-run check — 2026-09-22
+
+Each input was checked against what the constellation actually holds, before any
+predictor was trained or any label written. Counts: `experiments/e004/results/census-2026-09-22.txt`
+(aggregates only; the raw export is memory content and is not committed).
+
+**The world stream: present, with one usable window, dominated by one channel.**
+`KANNAKA.events.memory.>` holds 3,004 events from 2026-07-01, every one a `remember`
+(no recall, retrieve or forget verb exists on the bus). Nineteen days in the range have no
+events. The only run of 30 consecutive days with at least one event a day is
+**2026-08-22 to 09-20** (32 days, to 09-22). In it, days 1–20 (training) hold 1,917 events,
+**1,622 (85%) from one automated source**, `grid-colony-one` ("population.crash at epoch
+301", all at importance 0.5), almost all of them in the 09-05 to 09-10 burst; days 21–30
+(held out) hold 262, 57% from the same source. The trained predictor would mostly be a
+model of the colony simulation's log. That is the bursty-channel trap this experiment
+already names, arriving in the training set rather than at scoring time.
+
+**The ground truth: absent.** The rule scores recall@10 over *load-bearing* events,
+defined as events a settlement reading cites, quotes, or resolves on.
+
+- The settlement readings on record (`NickFlach/assay`, `readings/`) are 13 files dated
+  2026-08-18 to 09-22. None cites a bus event, subject or sequence number; they measure
+  markets, the compute district and the roster.
+- The resolved GhostSignals markets (50 most recent) settle on the news desk's next themes,
+  on radio album canon, or on per-agent artifact counts. None resolves on a value a bus
+  event carried. The 2026-09-15 settleability reading found 13 of 14 active markets
+  unmeasurable from their own text.
+- The stream itself cannot stand in for it: no recall events exist, no payload names
+  another event's `memory_id`, and dream digests carry counts but no memory ids.
+
+So the load-bearing set for this window is empty, and recall@10 over an empty probe set
+is undefined. The guard "load-bearing labels frozen before the arms ran" can be met only
+by freezing nothing. This is not a result about surprise. It is the finding that the
+experiment, as registered, has no outcome to measure against, and it is recorded so that
+no later run mistakes an empty label set for a null result.
+
+**The salience operator: built, with its sign corrected.** `src/novelty.rs` ports
+ADR-0040's operator from kannaka-memory (`a8725c7`). This document asks for "the
+fast-minus-slow differentiated response (ADR-0040's operator, unchanged)". Those two
+instructions disagree. ADR-0040's code computes `slow − fast`, because its drive is
+*familiarity* and a drop is the surprise. Here the drive is prediction *error*, where a
+rise is the surprise, so `fast − slow` is right and "unchanged" would be inverted: arm S
+would raise the importance of events the predictor got unusually *right*. The port takes
+the drive's meaning as a required argument (`Drive::Error` here), tests each sign, and
+has a test showing the inversion. The constant-stream guard is held to exactly 0.0 for
+both signs.
+
+**One fixed choice has nothing to act on.** "Against an exponential-moving-average target
+encoder, so the trivial constant solution is not available": the encoder is E-001's,
+frozen, and an EMA of a frozen encoder is the same encoder. JEPA's collapse risk comes
+from training the encoder the targets are computed with; with it frozen, the targets
+cannot collapse, and the risk that remains is the predictor regressing to the mean, which
+the collapse guard (prediction variance ≥ ⅓ of target variance) already catches. The
+clause is kept as written and noted as inert.
+
+**What would unblock it.** These are decisions for the author, not changes this check
+makes:
+
+1. *Make the ground truth, then wait.* Settlement readings that cite bus events by
+   subject and sequence, filed from now on, give a labelled window 30 days out.
+2. *Change what "later mattered" means to something the bus can record.* For example,
+   a memory later *recalled* by any agent. That needs recall events on the bus, which
+   kannaka-memory does not publish today, and it is a new pre-registration: it is a
+   different ground truth, with its own circularity risk (recall uses the encoder whose
+   rankings are being scored).
+3. *Exclude `grid-colony-one` from the world stream, or give it its own context*, and
+   decide which before seeing any arm. With it excluded, the window's training days hold
+   295 events.

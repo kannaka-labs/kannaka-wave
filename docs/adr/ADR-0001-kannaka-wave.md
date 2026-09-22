@@ -253,6 +253,11 @@ waves, and that is still Kannaka.
   already showed. No fixture set was built and no one was asked to label. The rule as
   written could not terminate on a constant; the author amended it so that an interval
   wholly below 0.60 declines, and E-003 is **declined**.
-- Next: E-004 (the world organ's salience) is unblocked: E-001 promoted the substrate
-  it runs on. The voice has no path
+- **E-004 pre-run check (2026-09-22):** blocked on ground truth. The world stream
+  exists (one gapless 30-day window, 08-22 to 09-20, 85% of its training days one
+  automated colony log), but no settlement reading or market on record cites a bus
+  event, and the bus carries no recall events, so the load-bearing set is empty.
+  `src/novelty.rs` ports ADR-0040's operator with the sign an error drive needs;
+  E-004's "unchanged" would have inverted it.
+- Next: E-004 waits on the author's choice of ground truth. The voice has no path
   to `propose` yet; when it gets one, its confidence is the only number it supplies.
