@@ -8,7 +8,7 @@
 //! wave remember "<text>" [--importance 0.5]
 //! wave remember --from <file> [--importance 0.5]      one memory per line, batch-encoded
 //! wave probe --probes <tsv> --out <tsv> [--answers <file>] [--top-k 8] [--judge <model>] [--judge-first N]
-//! wave ask "<prompt>" [--top-k 8] [--show-recall] [--faithfulness [--judge <model>]]
+//! wave ask "<prompt>" [--top-k 8] [--show-recall] [--faithfulness [--judge <model>]] [--propose]
 //! wave dream [--voice] [--retain "<class>=<cap>[:<ttl_days>]"]...
 //! wave status
 //! wave rows [--last 10]
@@ -24,7 +24,7 @@
 //! (default `~/.kannaka-wave/charter.kwc`), `KWAVE_AUDIT` (default
 //! `~/.kannaka-wave/audit.kwa`).
 
-use kannaka_wave::conscience::{AuditLog, Charter, Conscience, DryRun, Outcome};
+use kannaka_wave::conscience::{AuditLog, Charter, Conscience, DryRun, Entry, Outcome};
 use kannaka_wave::encoder::OllamaEncoder;
 use kannaka_wave::facet::decompose;
 use kannaka_wave::faithfulness::{is_hedge, measure, measure_with_judge, OllamaJudge, Support};
@@ -524,6 +524,10 @@ encoder batch failed ({e}); retrying one at a time"
             let top_k: usize = flag(rest, "--top-k")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(8);
+            // The proposal path does not exist without the rails: the charter
+            // is loaded before the voice is asked anything, and a missing one
+            // stops here.
+            let charter = rest.iter().any(|a| a == "--propose").then(load_charter);
             let s = open(dims);
             let a = ask(&prompt, &s, &encoder, &voice, top_k);
             if rest.iter().any(|a| a == "--show-recall") {
@@ -607,6 +611,35 @@ encoder batch failed ({e}); retrying one at a time"
                     match rep.judged() {
                         Some(x) => eprintln!("  judged faithfulness: {x:.2}"),
                         None => eprintln!("  judged faithfulness: none"),
+                    }
+                }
+            }
+            if let Some(charter) = charter {
+                // The voice is offered names and descriptions, nothing else,
+                // and asked once. What it proposes goes to the rails and onto
+                // the record whatever it is; the anchored faithfulness of the
+                // action's text against what was recalled is reported beside
+                // it, never gating (E-005's posture).
+                let offered = charter.effectors_for_the_voice();
+                let (raw, proposed) =
+                    voice.propose_action_raw(&a.question, &a.text, &a.recalled, &offered);
+                if rest.iter().any(|a| a == "--show-recall") {
+                    eprintln!("voice's reply to the proposal prompt:\n{}", raw.trim());
+                }
+                match proposed {
+                    None => println!("\nproposal: none"),
+                    Some(p) => {
+                        let rep = measure(&p.action, &a.recalled);
+                        let anchored = match rep.anchored() {
+                            Some(x) => format!("{x:.2}"),
+                            None => "no anchored claims".to_string(),
+                        };
+                        println!("\nproposal (anchored faithfulness of its text: {anchored}):");
+                        let entry = decide_and_record(charter, &p);
+                        print_entry(&entry);
+                        if entry.outcome == Outcome::Package {
+                            println!("\nThis is a package, not an action. Read it; if you sign it, carry it out yourself.");
+                        }
                     }
                 }
             }
@@ -718,29 +751,14 @@ encoder batch failed ({e}); retrying one at a time"
                 exit(1);
             };
             let charter = load_charter();
-            let (path, mut log) = load_audit();
-            let conscience = Conscience::new(charter, &log, now_secs())
-                .unwrap_or_else(|e| {
-                    eprintln!("{e}");
-                    exit(2);
-                })
-                .with_dry_run("wave.remember", Box::new(RememberDryRun));
-            let entry = conscience.entry_for(&Proposed {
-                effector: effector.to_string(),
-                action: action.to_string(),
-                confidence,
-            });
-            if let Err(e) = log.append(entry.clone()) {
-                eprintln!("{e}");
-                exit(2);
-            }
-            if let Err(e) = append_line(&path, &entry.to_line()) {
-                eprintln!(
-                    "cannot record to {}: {e}. Nothing was decided.",
-                    path.display()
-                );
-                exit(2);
-            }
+            let entry = decide_and_record(
+                charter,
+                &Proposed {
+                    effector: effector.to_string(),
+                    action: action.to_string(),
+                    confidence,
+                },
+            );
             print_entry(&entry);
             if entry.outcome == Outcome::Package {
                 println!("\nThis is a package, not an action. Read it; if you sign it, carry it out yourself.");
@@ -761,7 +779,7 @@ encoder batch failed ({e}); retrying one at a time"
         _ => {
             eprintln!(
                 "wave remember \"<text>\" [--importance 0.5]\n\
-                 wave ask \"<prompt>\" [--top-k 8] [--show-recall]\n\
+                 wave ask \"<prompt>\" [--top-k 8] [--show-recall] [--faithfulness] [--propose]\n\
                  wave dream [--voice] [--retain \"<class>=<cap>[:<ttl_days>]\"]...\n\
                  wave status\n\
                  wave rows [--last 10]\n\
@@ -772,6 +790,32 @@ encoder batch failed ({e}); retrying one at a time"
             exit(1);
         }
     }
+}
+
+/// The rails, against the chain on disk: decide, append in memory (which
+/// checks the head), then append to the file. Every proposal that reaches
+/// this is recorded, whatever the verdict.
+fn decide_and_record(charter: Charter, proposed: &Proposed) -> Entry {
+    let (path, mut log) = load_audit();
+    let conscience = Conscience::new(charter, &log, now_secs())
+        .unwrap_or_else(|e| {
+            eprintln!("{e}");
+            exit(2);
+        })
+        .with_dry_run("wave.remember", Box::new(RememberDryRun));
+    let entry = conscience.entry_for(proposed);
+    if let Err(e) = log.append(entry.clone()) {
+        eprintln!("{e}");
+        exit(2);
+    }
+    if let Err(e) = append_line(&path, &entry.to_line()) {
+        eprintln!(
+            "cannot record to {}: {e}. Nothing was decided.",
+            path.display()
+        );
+        exit(2);
+    }
+    entry
 }
 
 /// Append one entry to the audit file, writing the header first if the file

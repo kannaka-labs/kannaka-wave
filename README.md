@@ -56,7 +56,9 @@ experience → facets → substrate → dream (consolidate, propose, forget)
   person to sign, recorded in a SHA-256 chain that refuses to be decided against once
   tampered with. A test scans `src/` so that nothing can sign, spend, spawn a process,
   or open a connection outside the one HTTP client. `wave propose | charter | audit`;
-  an example charter is in `charters/`.
+  an example charter is in `charters/`. `wave ask --propose` lets the voice propose an
+  action after answering: it is told effector names and one-line descriptions, nothing
+  else, and whatever it proposes goes through the rails and onto the record.
 - `docs/experiments/E-001` — whether the waves earn their keep, against a plain vector
   store with the same encoder, facets and forgetting policy. **Run; the waves lose**
   (recall@10 on zero-overlap probes 0.24 against 0.58, Φ equal, ten seeds). The

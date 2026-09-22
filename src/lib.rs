@@ -131,6 +131,22 @@ pub trait Voice {
     fn speak(&self, question: &str, facets: &[Recalled]) -> String;
     /// Propose a connection between distant facets, for the dream to dispose of.
     fn propose(&self, parents: &[Facet]) -> Option<Facet>;
+    /// Propose an action through one of the effectors named, or nothing.
+    /// `effectors` is `(name, description)` pairs and that is all the voice
+    /// is told about them: impact, reversibility and clearance are the
+    /// charter's facts, read by the rails, never argued by the voice. The
+    /// confidence in the proposal is the only number the voice supplies.
+    /// The default voice proposes nothing.
+    fn propose_action(
+        &self,
+        question: &str,
+        answer: &str,
+        facets: &[Recalled],
+        effectors: &[(String, String)],
+    ) -> Option<Proposed> {
+        let _ = (question, answer, facets, effectors);
+        None
+    }
 }
 
 /// A proposed action, before the conscience has seen it.

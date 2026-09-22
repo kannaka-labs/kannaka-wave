@@ -1,4 +1,4 @@
-kwave-charter 1
+kwave-charter 2
 # An example charter for kannaka-wave. A person writes the real one; nothing
 # here is a default the rails fall back to. `wave charter` prints it canonical
 # with its sha256, which every audit entry records.
@@ -20,6 +20,9 @@ per_window = 86400 5
 impact = 0.1
 reversible = true
 cleared = weapons attention power trust abandonment
+# The one line the voice is told about this effector. Everything above it
+# stays with the rails.
+describe = store one memory in her own store
 
 # Speaking in the city is read by others and cannot be unsaid. It is cleared
 # for the refusals it cannot breach by construction and left to a person for
@@ -28,6 +31,7 @@ cleared = weapons attention power trust abandonment
 impact = 0.2
 reversible = false
 cleared = weapons power
+describe = say something in the city, where other agents read it
 
 [constraint hc.irreversible]
 statement = An action that cannot be undone goes to a person.

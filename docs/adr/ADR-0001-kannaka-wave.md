@@ -272,6 +272,18 @@ waves, and that is still Kannaka.
   noise (last-state is a weak baseline; the collapse floor does not catch a half-collapsed
   one), so E-004 Amendment 2 adds the constant-mean baseline, before any window event
   existed.
+- **The voice's propose path (2026-09-22):** `Voice::propose_action`, `wave ask --propose`.
+  After answering, the voice is offered the charter's effectors by **name and one-line
+  description only** (`describe =`, charter format v2; an effector without one is not
+  offered) and asked for exactly one `PROPOSE <effector> <confidence>` plus the action, or
+  `NONE`. `voice::parse_proposal` checks the form and judges nothing: an effector the voice
+  was never offered, or a confidence outside `[0, 1]`, goes to the rails and is refused
+  **on the record**, because a voice naming an effector it was not given is a thing the
+  audit should show. The charter is loaded before the voice is asked anything; with no
+  charter there is no proposal path. The anchored faithfulness of the action's text
+  against the recalled rows is printed beside the verdict and never gates. Its confidence
+  is still the only number the voice supplies.
 - Next: E-004 runs no earlier than 2026-10-30. E-007's window opens when recall events
-  appear on the bus. The voice has no path
+  appear on the bus. With a propose path, the real test of E-003's sentence (charter then
+  plan against plan then charter, with the actual rails and voice) can be pre-registered. The voice has no path
   to `propose` yet; when it gets one, its confidence is the only number it supplies.
