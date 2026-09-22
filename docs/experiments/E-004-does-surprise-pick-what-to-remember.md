@@ -1,10 +1,10 @@
 # E-004: Does surprise pick what to remember?
 
 **Status:** pre-registered; unblocked 2026-09-09 when E-001 promoted the vector store.
-**Pre-run check 2026-09-22: blocked on ground truth.** The world stream exists; the
-"load-bearing" labels the decision rule is scored on do not, in any source on record. The
-salience operator is built (`src/novelty.rs`) with a sign correction. Nothing has run.
-See §Pre-run check.
+**Pre-run check 2026-09-22: blocked on ground truth**, then **amended the same day,
+before any event of the new window existed** (§Amendment 1): citations that make the
+labels mechanical, a window starting 2026-09-23, a label floor, and `grid-colony-one`
+excluded. Earliest run: 2026-10-30. Sibling: E-007 scores the same arms against recall.
 **Decides:** whether a latent world model's prediction error, as ADR-0002's salience
 signal, keeps more of what later mattered than a stated retention policy alone.
 
@@ -175,3 +175,37 @@ makes:
 3. *Exclude `grid-colony-one` from the world stream, or give it its own context*, and
    decide which before seeing any arm. With it excluded, the window's training days hold
    295 events.
+
+## Amendment 1 — 2026-09-22, before the window opens
+
+Adopted by the author after the pre-run check, taking all three of its options (the third
+is E-007). Every change binds a window none of whose events exist yet, so nothing here was
+chosen having seen an arm, a label or an event it governs.
+
+**Ground truth is a lookup, not a judgement.** An event is *load-bearing* if a reading in
+`NickFlach/assay` cites it in a `cites` array and `instruments/bus_cite.py` (assay#3) reports that
+citation `VERIFIED` against the harness's export (any `how`: `cites`, `quotes`,
+`resolves_on`). `ALTERED`, `UNRESOLVED` and `MALFORMED` citations label nothing. This
+replaces "labelling is done by hand from the settlement text": the reading's author makes
+the claim, the instrument checks it, and no one labels. The frozen set is the sorted list of
+verified `(subject, seq)` pairs, and its SHA-256 goes in the report.
+
+**The window.** Days 1–30 are 2026-09-23 to 10-22 UTC; days 21–30 are 10-13 to 10-22.
+Readings filed up to 2026-10-29 count, so a settlement has a week to land after the last
+day it can cite; the label set freezes on 2026-10-30, and the arms run after it. The
+2026-08-22 to 09-20 window is retired: any reading citing its events would be written
+knowing what this experiment wants.
+
+**A floor.** At least 20 load-bearing events in days 21–30, or the run is void, the record
+says so, and the window slides forward a week at a time until the floor is met or the
+author stops it. A recall@10 over three probes decides nothing, so it is not allowed to.
+
+**`grid-colony-one` is excluded** from the world stream, in both training and held-out
+days, with every other source kept. On the retired window it was 85% of the training
+events. A per-channel context would also have stopped it dominating salience, but it would
+still have dominated what the predictor learned. The exclusion is by `agent_id`, and the
+report states how many events it removed.
+
+**What this does not guarantee.** Labels exist only if readings citing bus events get
+filed. Nothing in this repository files them, and the floor exists so that a quiet month
+is reported as a void run, never as a null result.
