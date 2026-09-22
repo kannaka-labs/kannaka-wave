@@ -266,6 +266,12 @@ waves, and that is still Kannaka.
   memories later recalled by a peer. That needs kannaka-memory to publish
   `KANNAKA.events.memory.<agent>.recall` (ids, scores and a query hash, never the query),
   and a deployed daemon.
+- **E-004 harness, self-tested before the window (2026-09-22):** `experiments/e004/harness`,
+  the predictor, ADR-0040's operator over its error, arms U and S on the E-001 substrate,
+  E-001's Φ. Its self-test found the registered adoption rule adopts a predictor on pure
+  noise (last-state is a weak baseline; the collapse floor does not catch a half-collapsed
+  one), so E-004 Amendment 2 adds the constant-mean baseline, before any window event
+  existed.
 - Next: E-004 runs no earlier than 2026-10-30. E-007's window opens when recall events
   appear on the bus. The voice has no path
   to `propose` yet; when it gets one, its confidence is the only number it supplies.
