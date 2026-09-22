@@ -193,7 +193,9 @@ def main():
     print("   Undecided otherwise: 'the fixture set doubles and the run repeats'. A")
     print("             larger set cannot move a constant, so the rule's literal")
     print("             outcome is a repeat that can never end. That is the rule's gap,")
-    print("             and it is the author's to close, not this check's.")
+    print("             and it is the author's to close, not this check's. (Closed")
+    print("             2026-09-22: an interval wholly below 0.60 declines. E-003's")
+    print("             Verdict section records the amendment.)")
 
     print("\n5. The nonlinear form consciousness-core moved to (2026-04-16)")
     print("   tanh(Rv)*Gv - tanh(Gv)*Rv breaks the constant, but it is a different")

@@ -32,7 +32,9 @@ E-003 pre-run check: the instrument before the fixture set
    Undecided otherwise: 'the fixture set doubles and the run repeats'. A
              larger set cannot move a constant, so the rule's literal
              outcome is a repeat that can never end. That is the rule's gap,
-             and it is the author's to close, not this check's.
+             and it is the author's to close, not this check's. (Closed
+             2026-09-22: an interval wholly below 0.60 declines. E-003's
+             Verdict section records the amendment.)
 
 5. The nonlinear form consciousness-core moved to (2026-04-16)
    tanh(Rv)*Gv - tanh(Gv)*Rv breaks the constant, but it is a different

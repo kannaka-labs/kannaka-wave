@@ -144,7 +144,8 @@ The linear commutator itself is `(α − β)` times a pair swap, an isometry: as
 per-vector signature it carries no information beyond the input
 (kannaka-memory `experiments/xi-operator-audit.md`, April 2026). consciousness-core
 moved `compute_xi_signature` to a tanh commutator in `5c8a2c8` (2026-04-16); `‖Ξa‖/‖a‖`
-under the linear form is the constant 0.190983 (E-003's pre-run check, 2026-09-22).
+under the linear form is the constant 0.190983 (E-003's pre-run check, 2026-09-22), and
+E-003 is **declined**: the operator does not enter the conscience.
 Two different quantities are both called ξ in production (spectral complexity in
 `consciousness.rs`, bridge residue in `metrics.rs`); ADR-0037 Phase 3 reconciled them in
 the beacon but the name collision remains.

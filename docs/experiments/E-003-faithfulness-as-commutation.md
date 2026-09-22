@@ -1,9 +1,10 @@
 # E-003: Faithfulness as commutation — the bridge operator at the conscience boundary
 
-**Status:** pre-registered, independent of E-001. Rails built 2026-09-22 (#4). **Pre-run
-check 2026-09-22: the measurement as registered is degenerate; `r` is a constant, so no
-fixture set was built and no one was asked to label. The verdict waits on the author:
-see §Pre-run check.**
+**Status:** pre-registered, independent of E-001. Rails built 2026-09-22 (#4). **DECLINED
+2026-09-22** on the pre-run check: the measurement as registered is degenerate (`r` is the
+constant 0.190983, AUC 0.5 for any labels). No fixture set was built and no one was asked
+to label. The decision rule was amended by the author to reach this verdict; see
+§Verdict.
 **Decides:** whether `Ξ = [R, G]` gives the rails a measurable faithfulness signal, or
 stays a metaphor.
 
@@ -37,7 +38,8 @@ time-boundedness. `R` and `G` are fixed by the constants; nothing is fitted.
 - **Kept** if AUC ≥ 0.80 with the interval excluding 0.70. The rails gain a residue
   threshold alongside their existing confidence floor and hard constraints, and it is
   reported on every verdict.
-- **Declined** if AUC's interval includes 0.60. The operator stays in the callosum,
+- **Declined** if AUC's interval includes 0.60, *or lies wholly below it* (amended
+  2026-09-22; see §Verdict). The operator stays in the callosum,
   where it is measured to spiral, and out of the conscience. The archaeology records the
   attempt.
 - **Undecided** otherwise: the fixture set doubles and the run repeats before any claim.
@@ -108,3 +110,26 @@ be measured with the real operators instead of two fixed 2×2 matrices: the rail
 (`conscience::Conscience`) and the voice's planning, on the same proposals in both
 orders. It needs the voice to emit proposals, which it does not yet do. If it is run, it
 is a new pre-registration with its own rule, and this record stays as the reason why.
+
+## Verdict — 2026-09-22
+
+**Declined.** The author (Nick Flach) adopted the reading proposed above: an AUC interval
+lying wholly below 0.60 declines, as one that includes 0.60 does. This amends a
+pre-registered rule after the result was known, and it is recorded as that. It changes
+only which branch a constant falls into. No reading of the original rule could make the
+experiment keep the residue, and its literal outcome was a repeat no fixture set could
+end.
+
+Consequences, per the rule's Declined branch:
+
+- The operator stays out of the conscience. The rails keep their current tests: the
+  confidence floor, the Five Refusals per effector, the hard constraints, the rate
+  window and the dry run. No residue is computed or reported on a verdict.
+- There is no callosum in the build (E-001, E-002), so the "stays in the callosum" half
+  of the branch has nothing to act on here. The operator remains where it is measured:
+  consciousness-core's nonlinear signature.
+- The archaeology records the attempt, and it records the April audit that already
+  held the answer.
+
+Only a new pre-registration reopens this question, measured with the real operators
+(the rails and the voice's planning, in both orders) as §Pre-run check describes.

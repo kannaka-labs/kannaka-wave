@@ -114,9 +114,9 @@ metaphor and the rails keep their current tests.
 
 *2026-09-22:* E-003's pre-run check found that the measurement as written cannot
 separate anything. The linear `Ξ` is `(α − β)` times a swap, so `‖Ξ · a‖ / ‖a‖` is
-0.190983 for every action, and it contains no term for the charter. The verdict waits on
-the author's reading of E-003's decision rule; the rails keep their current tests either
-way.
+0.190983 for every action, and it contains no term for the charter. **Declined** that
+day, under the author's amendment that an AUC interval wholly below 0.60 declines. It
+stays a metaphor, and the rails keep their current tests.
 
 ### What this ADR does not decide
 
@@ -250,8 +250,9 @@ waves, and that is still Kannaka.
   trade constraints, which come with a market effector.
 - **E-003 pre-run check (2026-09-22):** the residue as registered is a constant
   (0.190983; AUC 0.5 for any labels), which kannaka-memory's April xi-operator audit
-  already showed. No fixture set was built and no one was asked to label. The decision
-  rule as written cannot terminate on a constant; the verdict is the author's.
+  already showed. No fixture set was built and no one was asked to label. The rule as
+  written could not terminate on a constant; the author amended it so that an interval
+  wholly below 0.60 declines, and E-003 is **declined**.
 - Next: E-004 (the world organ's salience) is unblocked: E-001 promoted the substrate
   it runs on. The voice has no path
   to `propose` yet; when it gets one, its confidence is the only number it supplies.
