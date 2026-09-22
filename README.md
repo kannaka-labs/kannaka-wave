@@ -74,6 +74,10 @@ experience → facets → substrate → dream (consolidate, propose, forget)
   salience operator it needs is `src/novelty.rs`.
 - `docs/experiments/E-007` — the same arms, scored against what peers later recall.
   Pre-registered; it waits on recall events reaching the bus.
+- `docs/experiments/E-008` — E-003's sentence with the real rails and voice: does
+  charter-then-plan end where plan-then-charter ends, and does the disagreement separate
+  what a person would endorse better than the rails' own verdict? Pre-registered;
+  `experiments/e008/` runs it.
 
 ```sh
 cargo test

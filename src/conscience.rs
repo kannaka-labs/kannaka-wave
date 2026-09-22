@@ -889,6 +889,22 @@ impl Conscience {
         &self.charter
     }
 
+    /// What the rails would decide for an action through this effector
+    /// **on the effector's facts alone**: full confidence, a placeholder
+    /// action, the chain and the time as they stand. `Package` means the
+    /// charter admits the effector right now; anything else names why not.
+    /// Pure, and it records nothing. This is "the charter applied first"
+    /// (E-008): the set of effectors a voice may be offered so that whatever
+    /// it proposes is inside intent before it plans.
+    pub fn admits(&self, effector: &str) -> Outcome {
+        self.judge(&Proposed {
+            effector: effector.to_string(),
+            action: "(admission: the effector's facts alone)".to_string(),
+            confidence: 1.0,
+        })
+        .0
+    }
+
     /// Decide, and return the sealed audit entry that records it, chained
     /// onto the head this conscience was built with. Pure.
     pub fn entry_for(&self, p: &Proposed) -> Entry {
@@ -1213,6 +1229,31 @@ rule = require_human irreversible
             }
             v => panic!("expected a package, got {v:?}"),
         }
+    }
+
+    #[test]
+    fn admits_is_the_verdict_on_the_effector_alone_and_records_nothing() {
+        let log = AuditLog::new();
+        let c = conscience(&log, 1000);
+        assert_eq!(c.admits("wave.remember"), Outcome::Package);
+        assert_eq!(
+            c.admits("obc.speak"),
+            Outcome::Escalate,
+            "uncleared, irreversible"
+        );
+        assert_eq!(
+            c.admits("obc.build"),
+            Outcome::Escalate,
+            "impact above the bound"
+        );
+        assert_eq!(c.admits("wallet.transfer"), Outcome::Refused, "ungranted");
+        let bare = Conscience::new(charter(), &log, 1000).unwrap();
+        assert_eq!(
+            bare.admits("wave.remember"),
+            Outcome::Escalate,
+            "no dry run, no package"
+        );
+        assert_eq!(log.entries().len(), 0);
     }
 
     #[test]

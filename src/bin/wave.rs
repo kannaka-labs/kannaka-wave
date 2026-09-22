@@ -8,7 +8,7 @@
 //! wave remember "<text>" [--importance 0.5]
 //! wave remember --from <file> [--importance 0.5]      one memory per line, batch-encoded
 //! wave probe --probes <tsv> --out <tsv> [--answers <file>] [--top-k 8] [--judge <model>] [--judge-first N]
-//! wave ask "<prompt>" [--top-k 8] [--show-recall] [--faithfulness [--judge <model>]] [--propose]
+//! wave ask "<prompt>" [--top-k 8] [--show-recall] [--faithfulness [--judge <model>]] [--propose [--charter-first]]
 //! wave dream [--voice] [--retain "<class>=<cap>[:<ttl_days>]"]...
 //! wave status
 //! wave rows [--last 10]
@@ -620,7 +620,26 @@ encoder batch failed ({e}); retrying one at a time"
                 // the record whatever it is; the anchored faithfulness of the
                 // action's text against what was recalled is reported beside
                 // it, never gating (E-005's posture).
-                let offered = charter.effectors_for_the_voice();
+                // Plan then charter: the voice sees every described effector
+                // and the rails filter afterwards. Charter first (E-008): the
+                // voice is offered only what the rails would package now, so
+                // the charter is applied before it plans. Either way the
+                // proposal is decided and recorded the same.
+                let mut offered = charter.effectors_for_the_voice();
+                if rest.iter().any(|a| a == "--charter-first") {
+                    let (_, log) = load_audit();
+                    let rails = Conscience::new(charter.clone(), &log, now_secs())
+                        .unwrap_or_else(|e| {
+                            eprintln!("{e}");
+                            exit(2);
+                        })
+                        .with_dry_run("wave.remember", Box::new(RememberDryRun));
+                    offered.retain(|(name, _)| rails.admits(name) == Outcome::Package);
+                    if rest.iter().any(|a| a == "--show-recall") {
+                        let names: Vec<&str> = offered.iter().map(|(n, _)| n.as_str()).collect();
+                        eprintln!("charter first: offering {:?}", names);
+                    }
+                }
                 let (raw, proposed) =
                     voice.propose_action_raw(&a.question, &a.text, &a.recalled, &offered);
                 if rest.iter().any(|a| a == "--show-recall") {
@@ -779,7 +798,7 @@ encoder batch failed ({e}); retrying one at a time"
         _ => {
             eprintln!(
                 "wave remember \"<text>\" [--importance 0.5]\n\
-                 wave ask \"<prompt>\" [--top-k 8] [--show-recall] [--faithfulness] [--propose]\n\
+                 wave ask \"<prompt>\" [--top-k 8] [--show-recall] [--faithfulness] [--propose [--charter-first]]\n\
                  wave dream [--voice] [--retain \"<class>=<cap>[:<ttl_days>]\"]...\n\
                  wave status\n\
                  wave rows [--last 10]\n\
