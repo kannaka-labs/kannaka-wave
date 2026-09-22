@@ -283,7 +283,13 @@ waves, and that is still Kannaka.
   charter there is no proposal path. The anchored faithfulness of the action's text
   against the recalled rows is printed beside the verdict and never gates. Its confidence
   is still the only number the voice supplies.
+- **E-008 pre-registered (2026-09-22):** E-003's sentence with the real operators. Order A,
+  plan then charter (`ask --propose`); order B, charter then plan (`--charter-first`: the
+  voice is offered only what `Conscience::admits` would package). The residue is whether
+  the orders disagree; the baseline is the rails' own verdict; a Kept must beat it. A noise
+  floor (order A run twice) guards against reading sampling as residue. Runs against
+  E-005's frozen store and probes with the served voice on debain2.
 - Next: E-004 runs no earlier than 2026-10-30. E-007's window opens when recall events
-  appear on the bus. With a propose path, the real test of E-003's sentence (charter then
-  plan against plan then charter, with the actual rails and voice) can be pre-registered. The voice has no path
+  appear on the bus. E-008 runs when the served voice is reachable and two labellers are
+  found. The voice has no path
   to `propose` yet; when it gets one, its confidence is the only number it supplies.

@@ -132,4 +132,5 @@ Consequences, per the rule's Declined branch:
   held the answer.
 
 Only a new pre-registration reopens this question, measured with the real operators
-(the rails and the voice's planning, in both orders) as §Pre-run check describes.
+(the rails and the voice's planning, in both orders) as §Pre-run check describes. That is
+E-008, pre-registered 2026-09-22.
