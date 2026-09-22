@@ -1,0 +1,125 @@
+{
+  "schema": "crystal-registry",
+  "built_by": "architecture/registry.py",
+  "primitives": [
+    {
+      "id": "wave.recall",
+      "class": "Recall",
+      "persistence": 0.576,
+      "noise_tolerance": 1.0,
+      "material_id": "kannaka-wave",
+      "evidence_level": 1,
+      "behavioral_capabilities": [
+        {
+          "name": "zero_overlap_recall",
+          "passed": true
+        }
+      ],
+      "source": "E-001 report, arm V, recall@10 zero-overlap"
+    },
+    {
+      "id": "wave.forgetting",
+      "class": "Forgetting",
+      "persistence": 1.0,
+      "noise_tolerance": 0.0,
+      "material_id": "kannaka-wave",
+      "evidence_level": 1,
+      "behavioral_capabilities": [
+        {
+          "name": "cap_evicts_least_recalled_then_least_important_and_promotion_is_immune",
+          "passed": true
+        },
+        {
+          "name": "ttl_dissolves_expired_parents_and_their_facets",
+          "passed": true
+        }
+      ],
+      "source": "E-001 results, arm V: rows forgotten per row injected (clipped at 1), plus the store's tests"
+    },
+    {
+      "id": "wave.speak",
+      "class": "Speak",
+      "persistence": 0.839,
+      "noise_tolerance": 0.969,
+      "material_id": "kannaka-wave",
+      "evidence_level": 2,
+      "behavioral_capabilities": [
+        {
+          "name": "faithfulness_floor",
+          "passed": true
+        },
+        {
+          "name": "speaks_from_a_reply_and_reports_a_failure_instead_of_inventing",
+          "passed": true
+        },
+        {
+          "name": "a_prompt_is_reduced_to_its_question_and_only_that",
+          "passed": true
+        }
+      ],
+      "source": "E-005 report, arm A anchored faithfulness; CPU replication committed"
+    },
+    {
+      "id": "wave.decide",
+      "class": "Decide",
+      "persistence": 1.0,
+      "noise_tolerance": 0.0,
+      "material_id": "kannaka-wave",
+      "evidence_level": 1,
+      "behavioral_capabilities": [
+        {
+          "name": "decide_is_pure",
+          "passed": true
+        },
+        {
+          "name": "an_ungranted_effector_is_refused_whatever_the_confidence",
+          "passed": true
+        },
+        {
+          "name": "an_effector_not_cleared_for_all_five_refusals_goes_to_a_person",
+          "passed": true
+        },
+        {
+          "name": "forbid_irreversible_refuses_and_outranks_escalation",
+          "passed": true
+        },
+        {
+          "name": "no_source_file_can_sign_spend_or_spawn",
+          "passed": true
+        },
+        {
+          "name": "only_the_one_http_client_opens_a_connection",
+          "passed": true
+        }
+      ],
+      "source": "tests, executed by registry.py"
+    },
+    {
+      "id": "wave.audit",
+      "class": "Audit",
+      "persistence": 1.0,
+      "noise_tolerance": 0.0,
+      "material_id": "kannaka-wave",
+      "evidence_level": 1,
+      "behavioral_capabilities": [
+        {
+          "name": "the_chain_round_trips_and_every_tamper_is_found",
+          "passed": true
+        },
+        {
+          "name": "a_tampered_chain_is_refused_before_anything_is_decided",
+          "passed": true
+        },
+        {
+          "name": "an_entry_decided_against_a_stale_head_is_refused",
+          "passed": true
+        },
+        {
+          "name": "every_entry_names_the_charter_it_was_decided_under",
+          "passed": true
+        }
+      ],
+      "source": "tests, executed by registry.py"
+    }
+  ]
+}

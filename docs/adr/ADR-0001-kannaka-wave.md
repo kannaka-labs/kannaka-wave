@@ -289,7 +289,18 @@ waves, and that is still Kannaka.
   the orders disagree; the baseline is the rails' own verdict; a Kept must beat it. A noise
   floor (order A run twice) guards against reading sampling as residue. Runs against
   E-005's frozen store and probes with the served voice on debain2.
+- **The architecture, written (2026-09-22):** `architecture/wave.khdl` grows a Wave from
+  eight faculties, two per organ (the world organ of ADR-0002 supplying two; the
+  architecture is the program itself): Recall, Forgetting; Speak, Propose; Decide, Audit;
+  Predict, Surprise. Each is a `mind.faculty` query whose floors are numbers the record
+  already committed to. The registry it resolves against is not written by hand:
+  `architecture/registry.py` builds it from the evidence, a run experiment's measured
+  number (E-001: 0.576; E-005: 0.839, replicated), or, for a faculty with no experiment
+  registered, its named tests executed one by one; a faculty whose experiment is
+  registered but unrun gets **no row**. In strict mode the Wave therefore does not grow
+  today, and the refusal names Propose, Predict and Surprise: E-008, E-004, E-007, the
+  build order the record already implied. That refusal is the organ.
 - Next: E-004 runs no earlier than 2026-10-30. E-007's window opens when recall events
   appear on the bus. E-008 runs when the served voice is reachable and two labellers are
-  found. The voice has no path
+  found. Each result, once parsed by `registry.py`, gives its faculty a row. The voice has no path
   to `propose` yet; when it gets one, its confidence is the only number it supplies.

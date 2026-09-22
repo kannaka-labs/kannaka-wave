@@ -1,0 +1,307 @@
+{
+  "bridges": [],
+  "compiler_version": "0.11.0",
+  "discovery_requests": [
+    {
+      "class": "Propose",
+      "component_type": "faculty",
+      "constraints": {
+        "capability": "commutes_with_the_charter",
+        "material": "kannaka-wave",
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.5
+      },
+      "domain": "mind",
+      "request_type": "capability_discovery",
+      "requested_by_plan": "fnv1a64:5f63cfc1ab932821"
+    },
+    {
+      "class": "Predict",
+      "component_type": "faculty",
+      "constraints": {
+        "capability": "beats_last_state_and_the_mean",
+        "material": "kannaka-wave",
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.5
+      },
+      "domain": "mind",
+      "request_type": "capability_discovery",
+      "requested_by_plan": "fnv1a64:5f63cfc1ab932821"
+    },
+    {
+      "class": "Surprise",
+      "component_type": "faculty",
+      "constraints": {
+        "capability": "keeps_what_later_mattered",
+        "material": "kannaka-wave",
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.5
+      },
+      "domain": "mind",
+      "request_type": "capability_discovery",
+      "requested_by_plan": "fnv1a64:5f63cfc1ab932821"
+    }
+  ],
+  "expectations": [],
+  "grown_from": "Wave",
+  "leaves": [
+    {
+      "cell": "Recall",
+      "depth": 2,
+      "domain": "mind",
+      "h": 0.5,
+      "query": {
+        "capability": "zero_overlap_recall",
+        "class": "Recall",
+        "component_type": "faculty",
+        "domain": "mind",
+        "material": "kannaka-wave",
+        "min_evidence": 0,
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.5,
+        "strategy": "best"
+      },
+      "resolved": {
+        "capabilities": [
+          "zero_overlap_recall"
+        ],
+        "class": "Recall",
+        "evidence_level": 1,
+        "id": "wave.recall",
+        "material": "kannaka-wave",
+        "noise_tolerance": 1.0,
+        "persistence": 0.576,
+        "provider": "mind-registry"
+      },
+      "w": 0.25,
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "cell": "Forgetting",
+      "depth": 2,
+      "domain": "mind",
+      "h": 0.5,
+      "query": {
+        "capability": "ttl_dissolves_expired_parents_and_their_facets",
+        "class": "Forgetting",
+        "component_type": "faculty",
+        "domain": "mind",
+        "material": "kannaka-wave",
+        "min_evidence": 0,
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.75,
+        "strategy": "best"
+      },
+      "resolved": {
+        "capabilities": [
+          "cap_evicts_least_recalled_then_least_important_and_promotion_is_immune",
+          "ttl_dissolves_expired_parents_and_their_facets"
+        ],
+        "class": "Forgetting",
+        "evidence_level": 1,
+        "id": "wave.forgetting",
+        "material": "kannaka-wave",
+        "noise_tolerance": 0.0,
+        "persistence": 1.0,
+        "provider": "mind-registry"
+      },
+      "w": 0.25,
+      "x": 0.0,
+      "y": 0.5
+    },
+    {
+      "cell": "Speak",
+      "depth": 2,
+      "domain": "mind",
+      "h": 0.5,
+      "query": {
+        "capability": "faithfulness_floor",
+        "class": "Speak",
+        "component_type": "faculty",
+        "domain": "mind",
+        "material": "kannaka-wave",
+        "min_evidence": 2,
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.808,
+        "strategy": "best"
+      },
+      "resolved": {
+        "capabilities": [
+          "faithfulness_floor",
+          "speaks_from_a_reply_and_reports_a_failure_instead_of_inventing",
+          "a_prompt_is_reduced_to_its_question_and_only_that"
+        ],
+        "class": "Speak",
+        "evidence_level": 2,
+        "id": "wave.speak",
+        "material": "kannaka-wave",
+        "noise_tolerance": 0.969,
+        "persistence": 0.839,
+        "provider": "mind-registry"
+      },
+      "w": 0.25,
+      "x": 0.25,
+      "y": 0.0
+    },
+    {
+      "cell": "Propose",
+      "depth": 2,
+      "domain": "mind",
+      "h": 0.5,
+      "query": {
+        "capability": "commutes_with_the_charter",
+        "class": "Propose",
+        "component_type": "faculty",
+        "domain": "mind",
+        "material": "kannaka-wave",
+        "min_evidence": 0,
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.5,
+        "strategy": "best"
+      },
+      "resolved": null,
+      "w": 0.25,
+      "x": 0.25,
+      "y": 0.5
+    },
+    {
+      "cell": "Decide",
+      "depth": 2,
+      "domain": "mind",
+      "h": 0.5,
+      "query": {
+        "capability": "decide_is_pure",
+        "class": "Decide",
+        "component_type": "faculty",
+        "domain": "mind",
+        "material": "kannaka-wave",
+        "min_evidence": 0,
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 1.0,
+        "strategy": "best"
+      },
+      "resolved": {
+        "capabilities": [
+          "decide_is_pure",
+          "an_ungranted_effector_is_refused_whatever_the_confidence",
+          "an_effector_not_cleared_for_all_five_refusals_goes_to_a_person",
+          "forbid_irreversible_refuses_and_outranks_escalation",
+          "no_source_file_can_sign_spend_or_spawn",
+          "only_the_one_http_client_opens_a_connection"
+        ],
+        "class": "Decide",
+        "evidence_level": 1,
+        "id": "wave.decide",
+        "material": "kannaka-wave",
+        "noise_tolerance": 0.0,
+        "persistence": 1.0,
+        "provider": "mind-registry"
+      },
+      "w": 0.25,
+      "x": 0.5,
+      "y": 0.0
+    },
+    {
+      "cell": "Audit",
+      "depth": 2,
+      "domain": "mind",
+      "h": 0.5,
+      "query": {
+        "capability": "a_tampered_chain_is_refused_before_anything_is_decided",
+        "class": "Audit",
+        "component_type": "faculty",
+        "domain": "mind",
+        "material": "kannaka-wave",
+        "min_evidence": 0,
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 1.0,
+        "strategy": "best"
+      },
+      "resolved": {
+        "capabilities": [
+          "the_chain_round_trips_and_every_tamper_is_found",
+          "a_tampered_chain_is_refused_before_anything_is_decided",
+          "an_entry_decided_against_a_stale_head_is_refused",
+          "every_entry_names_the_charter_it_was_decided_under"
+        ],
+        "class": "Audit",
+        "evidence_level": 1,
+        "id": "wave.audit",
+        "material": "kannaka-wave",
+        "noise_tolerance": 0.0,
+        "persistence": 1.0,
+        "provider": "mind-registry"
+      },
+      "w": 0.25,
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "cell": "Predict",
+      "depth": 2,
+      "domain": "mind",
+      "h": 0.5,
+      "query": {
+        "capability": "beats_last_state_and_the_mean",
+        "class": "Predict",
+        "component_type": "faculty",
+        "domain": "mind",
+        "material": "kannaka-wave",
+        "min_evidence": 0,
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.5,
+        "strategy": "best"
+      },
+      "resolved": null,
+      "w": 0.25,
+      "x": 0.75,
+      "y": 0.0
+    },
+    {
+      "cell": "Surprise",
+      "depth": 2,
+      "domain": "mind",
+      "h": 0.5,
+      "query": {
+        "capability": "keeps_what_later_mattered",
+        "class": "Surprise",
+        "component_type": "faculty",
+        "domain": "mind",
+        "material": "kannaka-wave",
+        "min_evidence": 0,
+        "min_noise_tolerance": 0.0,
+        "min_persistence": 0.5,
+        "strategy": "best"
+      },
+      "resolved": null,
+      "w": 0.25,
+      "x": 0.75,
+      "y": 0.5
+    }
+  ],
+  "lowering_model": "plan-json-v1",
+  "plan_hash": "fnv1a64:5f63cfc1ab932821",
+  "program_hash": "fnv1a64:cd872451bd408020",
+  "registry_snapshots": [
+    {
+      "domain": "mind",
+      "primitives": 5,
+      "provider": "mind-registry",
+      "source": "architecture/wave-registry.json"
+    }
+  ],
+  "resolution_report": {
+    "bridges_resolved": 0,
+    "bridges_total": 0,
+    "leaves_resolved": 5,
+    "leaves_total": 8
+  },
+  "schema_version": "2",
+  "unresolved_mode": "speculative",
+  "warnings": [
+    "Propose: no component (class \"Propose\", min_persistence 0.5, capability \"commutes_with_the_charter\", material kannaka-wave) — swarm has not grown one yet",
+    "Predict: no component (class \"Predict\", min_persistence 0.5, capability \"beats_last_state_and_the_mean\", material kannaka-wave) — swarm has not grown one yet",
+    "Surprise: no component (class \"Surprise\", min_persistence 0.5, capability \"keeps_what_later_mattered\", material kannaka-wave) — swarm has not grown one yet"
+  ]
+}

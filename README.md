@@ -25,7 +25,7 @@ it.
 | Substrate | decides what persists: the voice's embeddings, atomic facets, a stated forgetting policy, in a plain vector store. E-001 (2026-09-09) measured the chiral wave medium against exactly that and the medium lost; it is in `docs/lineage/` | kannaka-memory ADR-0049/0054; E-001 |
 | Voice | an open-weight model on her own words, stateless, reading the substrate through `recall(question)` and entering it only in the dream | kannaka-memory ADR-0057/0058, rogue-agent |
 | Conscience | rails between the voice and every effector: a hashed charter, the Five Refusals per effector, a hash-chained audit, and packages for a person to sign, never an action. The reasoner is never the arbiter | kannaka-steward |
-| Architecture | the whole described in KannakaHDL, which refuses when a faculty has no honest answer | kannaka-hdl mind + code domains |
+| Architecture | the whole described in KannakaHDL (`architecture/wave.khdl`), resolved against a registry built from the record, which refuses when a faculty has no honest answer and names it | kannaka-hdl mind domain |
 
 ## The loop
 
@@ -59,6 +59,12 @@ experience → facets → substrate → dream (consolidate, propose, forget)
   an example charter is in `charters/`. `wave ask --propose` lets the voice propose an
   action after answering: it is told effector names and one-line descriptions, nothing
   else, and whatever it proposes goes through the rails and onto the record.
+- `architecture/wave.khdl`, `architecture/registry.py` — **the architecture**: the
+  whole as a KannakaHDL program, eight faculties across the organs, resolved against a
+  registry built from this repository's own evidence (measured numbers from run
+  experiments; executed tests where no experiment is registered; nothing for an unrun
+  one). In strict mode it refuses today and names Propose, Predict and Surprise, which
+  are E-008, E-004 and E-007.
 - `docs/experiments/E-001` — whether the waves earn their keep, against a plain vector
   store with the same encoder, facets and forgetting policy. **Run; the waves lose**
   (recall@10 on zero-overlap probes 0.24 against 0.58, Φ equal, ten seeds). The
