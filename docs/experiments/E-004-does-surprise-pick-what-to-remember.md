@@ -209,3 +209,30 @@ report states how many events it removed.
 **What this does not guarantee.** Labels exist only if readings citing bus events get
 filed. Nothing in this repository files them, and the floor exists so that a quiet month
 is reported as a void run, never as a null result.
+
+## Amendment 2 — 2026-09-22, before the window opens: a second baseline
+
+Made from the harness's self-test on synthetic streams (`experiments/e004/README.md`),
+before any real event of the window existed.
+
+**The adoption rule as registered can adopt a predictor that knows nothing.** On a stream
+of i.i.d. random unit vectors, the predictor beat the last-state baseline (held-out MSE
+0.0988 against 0.1236, interval excluding zero) and its collapse ratio was 0.58, above the
+⅓ floor. The reason is arithmetic: on such a stream the last-state predictor's error is
+about 2/D and a constant predictor's about 1/D, so any predictor that drifts toward the
+mean "beats the baseline" while modelling nothing, and a half-collapsed predictor clears a
+floor of ⅓.
+
+**Amended adoption rule.** The predictor is served only if, on the held-out days, it beats
+**both** the last-state baseline **and** the constant predictor (the mean of the training
+targets), each with a paired bootstrap interval excluding zero, **and** the collapse guard
+holds. On the synthetic noise stream it fails the second (0.0988 against 0.0628); on a
+synthetic predictable stream it passes all three (0.0015 against 0.0940 and 0.0589,
+collapse ratio 1.01). The collapse floor is not moved: changing it to make the noise case
+fail would be fitting the guard to the case.
+
+**Also fixed by the harness, and recorded there:** what a seed seeds (the predictor's
+weights and minibatch order; the substrate's dream is deterministic, so arm U is identical
+across seeds and the interval is arm S's variation); the operator starts fresh at day 21,
+keyed by `agent_id`; the retention class is the empty prefix; the cap is on the command
+line and the three-quarters guard checks what happened rather than what was meant.

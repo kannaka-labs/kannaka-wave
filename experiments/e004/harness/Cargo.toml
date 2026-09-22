@@ -1,0 +1,21 @@
+[package]
+name = "e004-harness"
+version = "0.0.1"
+edition = "2021"
+publish = false
+description = "E-004 / E-007 harness: the latent predictor, the surprise operator over its error, arms U and S on the E-001 substrate, and one Φ instrument"
+
+# This is the EXPERIMENT harness, not the product. kannaka-wave's own crate has
+# no dependencies by decision (ADR-0001); this one links it as a library (the
+# substrate E-001 promoted, the facet decomposer, the encoder client and
+# ADR-0040's operator) and consciousness-core for the Φ instrument E-001 used.
+[dependencies]
+kannaka-wave = { path = "../../.." }
+consciousness-core = { path = "../../../../consciousness-core", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[workspace]
+
+[profile.release]
+opt-level = 3
