@@ -259,5 +259,13 @@ waves, and that is still Kannaka.
   event, and the bus carries no recall events, so the load-bearing set is empty.
   `src/novelty.rs` ports ADR-0040's operator with the sign an error drive needs;
   E-004's "unchanged" would have inverted it.
-- Next: E-004 waits on the author's choice of ground truth. The voice has no path
+- **E-004 amended, E-007 registered (2026-09-22):** before the new window opens,
+  E-004's labels become a lookup (`NickFlach/assay` readings with a `cites` array,
+  checked by `instruments/bus_cite.py`). Its window runs 2026-09-23 to 10-22, it needs at
+  least 20 labels, and `grid-colony-one` is excluded. E-007 scores the same arms against
+  memories later recalled by a peer. That needs kannaka-memory to publish
+  `KANNAKA.events.memory.<agent>.recall` (ids, scores and a query hash, never the query),
+  and a deployed daemon.
+- Next: E-004 runs no earlier than 2026-10-30. E-007's window opens when recall events
+  appear on the bus. The voice has no path
   to `propose` yet; when it gets one, its confidence is the only number it supplies.
