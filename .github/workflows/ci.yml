@@ -23,6 +23,24 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
       - name: test
         run: cargo test
+      - name: the architecture's registry builds from the evidence, with every contract executed
+        run: |
+          set -eu
+          python3 architecture/registry.py --out /tmp/wave-registry.json 2> /tmp/registry.log
+          cat /tmp/registry.log
+          rows=$(python3 -c "import json;print(len(json.load(open('/tmp/wave-registry.json'))['primitives']))")
+          failed=$(python3 -c "import json;print(sum(1 for p in json.load(open('/tmp/wave-registry.json'))['primitives'] for c in p['behavioral_capabilities'] if not c['passed']))")
+          echo "rows=$rows failed_capabilities=$failed"
+          [ "$failed" = "0" ] || { echo "a faculty's contract failed when executed"; exit 1; }
+          [ "$rows" -ge 5 ] || { echo "fewer faculty rows than the record supports"; exit 1; }
+          # The committed registry must be what the evidence builds. (kannaka-hdl itself
+          # is not installed here; the strict grow is run locally and its refusal recorded.)
+          python3 -c "
+          import json
+          a=json.load(open('/tmp/wave-registry.json'))['primitives']; b=json.load(open('architecture/wave-registry.json'))['primitives']
+          key=lambda p:(p['class'],round(p['persistence'],6),p['evidence_level'],tuple((c['name'],c['passed']) for c in p['behavioral_capabilities']))
+          assert sorted(map(key,a))==sorted(map(key,b)), 'architecture/wave-registry.json is stale: rebuild it with registry.py'
+          "
       - name: no dependencies yet, on purpose
         run: |
           set -eu

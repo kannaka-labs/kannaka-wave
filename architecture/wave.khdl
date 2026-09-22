@@ -1,0 +1,74 @@
+# wave.khdl — organ 4, the architecture (ADR-0001 §Architecture).
+#
+# A Wave is grown from eight faculties, two per organ, every one a
+# `mind.faculty` query against a registry that `registry.py` builds from this
+# repository's own evidence: the measured number of a run experiment, or the
+# named tests of a faculty that has no experiment registered, executed at
+# build time. A faculty whose experiment is registered but has not run has no
+# row, so in strict mode the grow refuses and names it. That refusal is the
+# organ's job: an unresolved faculty is demand, and it says what to build next.
+#
+#   python3 architecture/registry.py --out architecture/wave-registry.json
+#   kannaka-hdl grow architecture/wave.khdl --mind-registry architecture/wave-registry.json \
+#       --unresolved strict --emit json
+#
+# The floors are the point. Each one is a number the record already committed
+# to, so the program can only be satisfied by the evidence that exists.
+
+cell Wave() {
+    when always => split Substrate(), Voice(), Conscience(), World()
+}
+
+# Organ 1. E-001 promoted the vector store; its numbers are the floors.
+cell Substrate() {
+    when always => split Recall(), Forgetting()
+}
+cell Recall() {
+    # E-001 arm V, recall@10 on zero-overlap probes: 0.576 against the waves' 0.242.
+    when always => base mind.faculty "Recall" min_persistence 0.5 capability "zero_overlap_recall" material "kannaka-wave"
+}
+cell Forgetting() {
+    # E-001's guard: the policy must actually delete. The store's own rules are
+    # the contract: cap evicts least-recalled then least-important, promotion
+    # is immune, time-to-live dissolves parents with their facets.
+    when always => base mind.faculty "Forgetting" min_persistence 0.75 capability "cap_evicts_least_recalled_then_least_important_and_promotion_is_immune" capability "ttl_dissolves_expired_parents_and_their_facets" material "kannaka-wave"
+}
+
+# Organ 2. Speak is measured (E-005); Propose waits on E-008.
+cell Voice() {
+    when always => split Speak(), Propose()
+}
+cell Speak() {
+    # E-005: anchored faithfulness 0.839, replicated on CPU (0.830); the adoption
+    # floor is 0.808 and it is the floor here too. min_evidence 2 = replicated.
+    when always => base mind.faculty "Speak" min_persistence 0.808 min_evidence 2 capability "faithfulness_floor" material "kannaka-wave"
+}
+cell Propose() {
+    # E-008, pre-registered 2026-09-22, not run. No row until it has.
+    when always => base mind.faculty "Propose" min_persistence 0.5 capability "commutes_with_the_charter" material "kannaka-wave"
+}
+
+# Organ 3. No experiment is registered for the rails (E-003 was declined and
+# the rails kept their tests), so their rows come from the tests, executed.
+cell Conscience() {
+    when always => split Decide(), Audit()
+}
+cell Decide() {
+    when always => base mind.faculty "Decide" min_persistence 1.0 capability "no_source_file_can_sign_spend_or_spawn" capability "an_ungranted_effector_is_refused_whatever_the_confidence" capability "decide_is_pure" material "kannaka-wave"
+}
+cell Audit() {
+    when always => base mind.faculty "Audit" min_persistence 1.0 capability "the_chain_round_trips_and_every_tamper_is_found" capability "a_tampered_chain_is_refused_before_anything_is_decided" material "kannaka-wave"
+}
+
+# Organ 5 (ADR-0002). Both wait on E-004 (and E-007). No rows until they run.
+cell World() {
+    when always => split Predict(), Surprise()
+}
+cell Predict() {
+    when always => base mind.faculty "Predict" min_persistence 0.5 capability "beats_last_state_and_the_mean" material "kannaka-wave"
+}
+cell Surprise() {
+    when always => base mind.faculty "Surprise" min_persistence 0.5 capability "keeps_what_later_mattered" material "kannaka-wave"
+}
+
+grow Wave()
