@@ -24,7 +24,7 @@ it.
 |---|---|---|
 | Substrate | decides what persists: the voice's embeddings, atomic facets, a stated forgetting policy, in a plain vector store. E-001 (2026-09-09) measured the chiral wave medium against exactly that and the medium lost; it is in `docs/lineage/` | kannaka-memory ADR-0049/0054; E-001 |
 | Voice | an open-weight model on her own words, stateless, reading the substrate through `recall(question)` and entering it only in the dream | kannaka-memory ADR-0057/0058, rogue-agent |
-| Conscience | rails between the voice and every effector; the reasoner is never the arbiter | kannaka-steward |
+| Conscience | rails between the voice and every effector: a hashed charter, the Five Refusals per effector, a hash-chained audit, and packages for a person to sign, never an action. The reasoner is never the arbiter | kannaka-steward |
 | Architecture | the whole described in KannakaHDL, which refuses when a faculty has no honest answer | kannaka-hdl mind + code domains |
 
 ## The loop
@@ -49,6 +49,14 @@ experience → facets → substrate → dream (consolidate, propose, forget)
   question, entering it only through a gated dream proposal, replaced only when a
   judge with controls and an external evaluator agree. `wave remember | ask | dream |
   status` runs it from a shell.
+- `src/conscience.rs`, `src/sha256.rs`, `tests/no_effector.rs` — **the conscience**:
+  the steward's rails, charter and audit chain in Rust. The voice names an effector and
+  a confidence; the charter says what that effector weighs and which of the Five
+  Refusals it is cleared for; the rails refuse, escalate, or emit a package for a
+  person to sign, recorded in a SHA-256 chain that refuses to be decided against once
+  tampered with. A test scans `src/` so that nothing can sign, spend, spawn a process,
+  or open a connection outside the one HTTP client. `wave propose | charter | audit`;
+  an example charter is in `charters/`.
 - `docs/experiments/E-001` — whether the waves earn their keep, against a plain vector
   store with the same encoder, facets and forgetting policy. **Run; the waves lose**
   (recall@10 on zero-overlap probes 0.24 against 0.58, Φ equal, ten seeds). The
@@ -56,7 +64,8 @@ experience → facets → substrate → dream (consolidate, propose, forget)
 - `docs/lineage/` — what that decision moved out of the build, kept whole: the
   `10000.00001` number system as a tested type.
 - `docs/experiments/E-003`, `E-004` — the bridge operator at the conscience boundary,
-  and whether surprise picks what to remember. Pre-registered, not yet run.
+  and whether surprise picks what to remember. Pre-registered, not yet run; both are
+  now unblocked.
 
 ```sh
 cargo test
