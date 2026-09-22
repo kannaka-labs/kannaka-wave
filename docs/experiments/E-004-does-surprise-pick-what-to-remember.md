@@ -1,6 +1,6 @@
 # E-004: Does surprise pick what to remember?
 
-**Status:** pre-registered, blocked on E-001 (runs on the substrate E-001 promotes)
+**Status:** pre-registered; unblocked 2026-09-09 when E-001 promoted the vector store (runs on the substrate E-001 promotes)
 **Decides:** whether a latent world model's prediction error, as ADR-0002's salience
 signal, keeps more of what later mattered than a stated retention policy alone.
 

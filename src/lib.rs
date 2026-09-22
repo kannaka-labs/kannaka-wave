@@ -11,7 +11,10 @@
 //! stated forgetting policy ([`Retention`]). The voice is [`voice::OllamaVoice`]:
 //! stateless, reading the substrate only through [`voice::ask`]'s reduced
 //! question, entering it only through the dream's gated proposal, and replaced
-//! only by [`adoption::decide`]. The chiral number system that was here is in
+//! only by [`adoption::decide`]. The conscience is [`conscience::Conscience`]:
+//! a person's charter, the steward's rails and a hash-chained audit, between
+//! the voice and every effector; it emits packages for a person to sign and
+//! has no way to act. The chiral number system that was here is in
 //! `docs/lineage/`, out of the build.
 //!
 //! No dependencies. The encoder speaks HTTP over `std::net`; the store's file
@@ -22,10 +25,12 @@
 #![warn(missing_docs)]
 
 pub mod adoption;
+pub mod conscience;
 pub mod encoder;
 pub mod facet;
 pub mod faithfulness;
 mod http;
+mod sha256;
 pub mod store;
 pub mod voice;
 
@@ -130,6 +135,10 @@ pub trait Voice {
 /// A proposed action, before the conscience has seen it.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Proposed {
+    /// The effector it would go through, by the name the charter grants it
+    /// under. Its impact and reversibility are the charter's facts, never
+    /// the voice's.
+    pub effector: String,
     /// What the voice wants to do, as a serialisable description.
     pub action: String,
     /// The voice's own confidence, in `[0, 1]`.

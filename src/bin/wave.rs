@@ -1,7 +1,8 @@
-//! `wave`: the substrate and the voice from a shell, against one store file
-//! and one ollama server. Enough to remember, ask and dream for real; the
-//! conscience and the world organ are not wired here yet, so nothing in this
-//! binary acts on the world.
+//! `wave`: the substrate, the voice and the conscience from a shell, against
+//! one store file, one charter, one audit chain and one ollama server. Enough
+//! to remember, ask and dream for real. The conscience decides on proposals
+//! and packages them for a person; nothing in this binary acts on the world
+//! (`tests/no_effector.rs` holds it to that). The world organ is not wired.
 //!
 //! ```text
 //! wave remember "<text>" [--importance 0.5]
@@ -11,20 +12,26 @@
 //! wave dream [--voice] [--retain "<class>=<cap>[:<ttl_days>]"]...
 //! wave status
 //! wave rows [--last 10]
+//! wave charter                                         the charter in force and its hash
+//! wave propose <effector> "<action>" --confidence 0.8  decide, record, print the verdict
+//! wave audit                                           verify the chain and print it
 //! ```
 //!
 //! Environment: `KWAVE_STORE` (default `~/.kannaka-wave/store.kwave`),
 //! `KWAVE_OLLAMA_HOST` / `KWAVE_OLLAMA_PORT` (default `127.0.0.1:11434`),
 //! `KWAVE_EMBED_MODEL` / `KWAVE_EMBED_DIMS` (default `mxbai-embed-large`, 1024),
-//! `KWAVE_VOICE_MODEL` (default `kannaka-brain-7b-v1`).
+//! `KWAVE_VOICE_MODEL` (default `kannaka-brain-7b-v1`), `KWAVE_CHARTER`
+//! (default `~/.kannaka-wave/charter.kwc`), `KWAVE_AUDIT` (default
+//! `~/.kannaka-wave/audit.kwa`).
 
+use kannaka_wave::conscience::{AuditLog, Charter, Conscience, DryRun, Outcome};
 use kannaka_wave::encoder::OllamaEncoder;
 use kannaka_wave::facet::decompose;
 use kannaka_wave::faithfulness::{is_hedge, measure, measure_with_judge, OllamaJudge, Support};
 use kannaka_wave::store::{VectorStore, PROPOSED_CLASS};
 use kannaka_wave::voice::{ask, OllamaVoice};
 use kannaka_wave::Facet;
-use kannaka_wave::{Retention, Substrate};
+use kannaka_wave::{Proposed, Retention, Substrate};
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -32,16 +39,78 @@ fn env_or(key: &str, default: &str) -> String {
     std::env::var(key).unwrap_or_else(|_| default.to_string())
 }
 
-fn store_path() -> PathBuf {
-    if let Ok(p) = std::env::var("KWAVE_STORE") {
+fn state_path(key: &str, file: &str) -> PathBuf {
+    if let Ok(p) = std::env::var(key) {
         return PathBuf::from(p);
     }
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
         .unwrap_or_else(|_| ".".into());
-    PathBuf::from(home)
-        .join(".kannaka-wave")
-        .join("store.kwave")
+    PathBuf::from(home).join(".kannaka-wave").join(file)
+}
+
+fn store_path() -> PathBuf {
+    state_path("KWAVE_STORE", "store.kwave")
+}
+
+/// The charter in force. There is no default charter: the rails do not run
+/// on intent nobody wrote.
+fn load_charter() -> Charter {
+    let path = state_path("KWAVE_CHARTER", "charter.kwc");
+    let text = match std::fs::read_to_string(&path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!(
+                "no charter at {} ({e}). The rails do not run without one; \
+                 charters/wave.example.kwc is a start, and a person writes the rest.",
+                path.display()
+            );
+            exit(2);
+        }
+    };
+    match Charter::parse(&text) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{}: {e}", path.display());
+            exit(2);
+        }
+    }
+}
+
+/// The audit chain, verified. A missing file is an empty chain; a broken one
+/// stops everything.
+fn load_audit() -> (PathBuf, AuditLog) {
+    let path = state_path("KWAVE_AUDIT", "audit.kwa");
+    let log = match std::fs::read_to_string(&path) {
+        Ok(t) => AuditLog::parse(&t).unwrap_or_else(|e| {
+            eprintln!("{}: {e}. Refusing to decide against it.", path.display());
+            exit(2);
+        }),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => AuditLog::new(),
+        Err(e) => {
+            eprintln!("cannot read {}: {e}", path.display());
+            exit(2);
+        }
+    };
+    (path, log)
+}
+
+/// The dry run for `wave.remember`: what `wave remember` would write, with no
+/// encoder call and no store opened.
+struct RememberDryRun;
+
+impl DryRun for RememberDryRun {
+    fn dry_run(&self, action: &str) -> Result<String, String> {
+        if action.trim().is_empty() {
+            return Err("nothing to remember".into());
+        }
+        let facets = decompose(action);
+        Ok(format!(
+            "would write 1 row and {} facet(s); to carry it out: wave remember {:?}",
+            facets.len(),
+            action
+        ))
+    }
 }
 
 fn open(dims: usize) -> VectorStore {
@@ -619,17 +688,129 @@ encoder batch failed ({e}); retrying one at a time"
                 kannaka_wave::store::FORMAT_VERSION
             );
         }
+        Some("charter") => {
+            let c = load_charter();
+            print!("{}", c.canonical());
+            println!("\n# sha256 {}", kannaka_wave::conscience::hex(&c.hash()));
+        }
+        Some("propose") => {
+            let rest = &args[1..];
+            let words: Vec<&String> = {
+                let mut out = Vec::new();
+                let mut i = 0;
+                while i < rest.len() {
+                    if rest[i].starts_with("--") {
+                        i += 2;
+                        continue;
+                    }
+                    out.push(&rest[i]);
+                    i += 1;
+                }
+                out
+            };
+            let (Some(effector), Some(action)) = (words.first(), words.get(1)) else {
+                eprintln!("wave propose <effector> \"<action>\" --confidence <0..1>");
+                exit(1);
+            };
+            let Some(confidence) = flag(rest, "--confidence").and_then(|c| c.parse::<f32>().ok())
+            else {
+                eprintln!("--confidence <0..1> is required; the rails do not guess it");
+                exit(1);
+            };
+            let charter = load_charter();
+            let (path, mut log) = load_audit();
+            let conscience = Conscience::new(charter, &log, now_secs())
+                .unwrap_or_else(|e| {
+                    eprintln!("{e}");
+                    exit(2);
+                })
+                .with_dry_run("wave.remember", Box::new(RememberDryRun));
+            let entry = conscience.entry_for(&Proposed {
+                effector: effector.to_string(),
+                action: action.to_string(),
+                confidence,
+            });
+            if let Err(e) = log.append(entry.clone()) {
+                eprintln!("{e}");
+                exit(2);
+            }
+            if let Err(e) = append_line(&path, &entry.to_line()) {
+                eprintln!(
+                    "cannot record to {}: {e}. Nothing was decided.",
+                    path.display()
+                );
+                exit(2);
+            }
+            print_entry(&entry);
+            if entry.outcome == Outcome::Package {
+                println!("\nThis is a package, not an action. Read it; if you sign it, carry it out yourself.");
+            }
+        }
+        Some("audit") => {
+            let (path, log) = load_audit();
+            for e in log.entries() {
+                print_entry(e);
+                println!();
+            }
+            println!(
+                "{}: {} entries, chain verified",
+                path.display(),
+                log.entries().len()
+            );
+        }
         _ => {
             eprintln!(
                 "wave remember \"<text>\" [--importance 0.5]\n\
                  wave ask \"<prompt>\" [--top-k 8] [--show-recall]\n\
                  wave dream [--voice] [--retain \"<class>=<cap>[:<ttl_days>]\"]...\n\
-                 wave status
-                 wave rows [--last 10]"
+                 wave status\n\
+                 wave rows [--last 10]\n\
+                 wave charter\n\
+                 wave propose <effector> \"<action>\" --confidence <0..1>\n\
+                 wave audit"
             );
             exit(1);
         }
     }
+}
+
+/// Append one entry to the audit file, writing the header first if the file
+/// is new. The chain was verified and the entry checked against its head
+/// before this is called.
+fn append_line(path: &std::path::Path, line: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let fresh = !path.exists();
+    let mut f = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)?;
+    if fresh {
+        writeln!(f, "{}", AuditLog::header())?;
+    }
+    writeln!(f, "{line}")?;
+    f.sync_all()
+}
+
+fn print_entry(e: &kannaka_wave::conscience::Entry) {
+    let verdict = match e.outcome {
+        Outcome::Package => "PACKAGE",
+        Outcome::Refused => "REFUSED",
+        Outcome::Escalate => "ESCALATE",
+    };
+    println!(
+        "#{} {verdict}  {} (confidence {})",
+        e.seq, e.effector, e.confidence
+    );
+    println!("  action:  {}", e.action);
+    println!("  why:     {}", e.detail);
+    if let Some(d) = &e.dry_run {
+        println!("  dry run: {d}");
+    }
+    println!("  charter: {}", kannaka_wave::conscience::hex(&e.charter));
+    println!("  hash:    {}", kannaka_wave::conscience::hex(&e.hash));
 }
 
 fn now_secs() -> u64 {

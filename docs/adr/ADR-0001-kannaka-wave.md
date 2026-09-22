@@ -207,5 +207,42 @@ waves, and that is still Kannaka.
   adoption rule carries a floor of 0.808 as code. Her words did not teach her to
   invent; whether they taught her to answer rather than hedge did not replicate and
   stays a hypothesis.
-- Next: E-003 (rails) and E-004 (the world organ's salience) as pre-registered; the
-  conscience between `ask` and any effector before this binary is allowed one.
+- **The conscience, written (2026-09-22):** `src/conscience.rs`, the steward's
+  `rails.ts`, `charter.ts` and `audit.ts` in Rust, in the voice's process. A proposal is
+  an effector name, an action and a confidence; everything else the rails weigh (impact,
+  reversibility, which refusals the effector is cleared for) is the charter's, so the
+  voice cannot argue an action smaller. Order: malformed → refuse; ungranted effector →
+  refuse; the Five Refusals; confidence floor; `max_auto_impact`; hard constraints
+  (`require_human always|irreversible`, `max_impact`, `forbid_irreversible`); a rate
+  window counted from the chain; a dry run last, and no dry run means no package.
+  Refuse outranks escalate outranks package. The charter is a strict text format
+  (`charters/wave.example.kwc`), hashed canonically with SHA-256 (`src/sha256.rs`,
+  pinned to the FIPS 180-4 vectors; `wave charter`'s hash equals `shasum -a 256` of
+  the canonical text). Every decision is an entry in a hash-chained audit file; a
+  tampered chain is refused before anything is decided against it, and an entry
+  decided against a stale head is refused so two deciders cannot fork it.
+  `tests/no_effector.rs` is the no-signing invariant: it scans `src/` with comments
+  stripped for process spawning, wallets, signing secrets, signing and broadcasting
+  calls, and any network primitive outside `src/http.rs`, with a positive control
+  (every rule fires) and a negative control (prose and longer identifiers do not).
+  `wave propose | charter | audit` runs it; `wave.remember` is the one effector with a
+  dry run, and its package tells the person the command to run themselves.
+
+  **The Five Refusals are enforced by attestation, not detection.** No check in this
+  crate can read an action string and know whether it builds a weapon, and a keyword
+  list presented as one would be a check weaker than its claim. The person clears each
+  effector, in the hashed charter, for the refusals it cannot breach by construction;
+  an action through an effector not cleared for all five escalates, naming the ones
+  left. That makes the refusals walls around *effectors*. An action that breaches one
+  through an effector cleared for it is the charter's error, and the audit names the
+  charter hash that made it.
+
+  **Not brought over yet:** the charter is hashed, not signed (a signature needs a key
+  this crate refuses to hold; the person's signature belongs on the package, outside);
+  the steward's principles and deterministic reasoner (the voice is the reasoner here,
+  and it does not yet emit proposals); the warrant layer (delegation grants); and the
+  trade constraints, which come with a market effector.
+- Next: E-003 now has its rails, and needs its fixture set of actions a person would
+  and would not endorse, the Five Refusals among them. E-004 (the world organ's
+  salience) is unblocked: E-001 promoted the substrate it runs on. The voice has no path
+  to `propose` yet; when it gets one, its confidence is the only number it supplies.
