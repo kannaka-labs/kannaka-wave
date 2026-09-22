@@ -118,6 +118,10 @@ pub struct Effector {
     /// The refusals this effector cannot breach by construction, as the
     /// person attests by listing them.
     pub cleared: Vec<Refusal>,
+    /// What it does, in one line, for the voice: the only thing about an
+    /// effector the voice is ever told. Empty means the voice is not offered
+    /// it at all.
+    pub describe: String,
 }
 
 /// When [`Rule::RequireHuman`] binds.
@@ -183,8 +187,9 @@ pub struct Charter {
     pub constraints: Vec<Constraint>,
 }
 
-/// The charter file format's version. A newer file is refused.
-pub const CHARTER_FORMAT: u32 = 1;
+/// The charter file format's version. A newer file is refused. v2 added the
+/// optional `describe` line on an effector; a v1 file still reads.
+pub const CHARTER_FORMAT: u32 = 2;
 const CHARTER_MAGIC: &str = "kwave-charter";
 
 /// Why a charter could not be read. Every error names its line.
@@ -243,6 +248,7 @@ impl Charter {
     /// impact = 0.1
     /// reversible = true
     /// cleared = weapons attention power trust abandonment
+    /// describe = store one memory in her own store   # optional; shown to the voice
     ///
     /// [constraint hc.irreversible]
     /// statement = An action that cannot be undone goes to a person.
@@ -276,7 +282,7 @@ impl Charter {
         let mut floor = None;
         let mut max_auto = None;
         let mut per_window = None;
-        let mut effectors: Vec<(usize, Effector, [bool; 2])> = Vec::new();
+        let mut effectors: Vec<(usize, Effector, [bool; 3])> = Vec::new();
         let mut constraints: Vec<(usize, String, Option<String>, Option<Rule>)> = Vec::new();
         let mut section = Section::Top;
 
@@ -304,8 +310,9 @@ impl Charter {
                                 impact: f32::NAN,
                                 reversible: false,
                                 cleared: Vec::new(),
+                                describe: String::new(),
                             },
-                            [false; 2],
+                            [false; 3],
                         ));
                         section = Section::Effector(effectors.len() - 1);
                     }
@@ -378,7 +385,11 @@ impl Charter {
                             }
                             e.cleared.sort();
                         }
-                        "impact" | "reversible" | "cleared" => return Err(dup(key)),
+                        "describe" if !seen[2] => {
+                            seen[2] = true;
+                            e.describe = value.to_string();
+                        }
+                        "impact" | "reversible" | "cleared" | "describe" => return Err(dup(key)),
                         _ => return Err(err(n, format!("unknown effector key {key:?}"))),
                     }
                 }
@@ -453,6 +464,9 @@ impl Charter {
             s += &format!("reversible = {}\n", e.reversible);
             let cleared: Vec<&str> = e.cleared.iter().map(|r| r.key()).collect();
             s += &format!("cleared = {}\n", cleared.join(" "));
+            if !e.describe.is_empty() {
+                s += &format!("describe = {}\n", e.describe);
+            }
         }
         for c in &self.constraints {
             s += &format!("\n[constraint {}]\n", c.id);
@@ -480,6 +494,17 @@ impl Charter {
     /// The effector named, if the charter grants it.
     pub fn effector(&self, name: &str) -> Option<&Effector> {
         self.effectors.iter().find(|e| e.name == name)
+    }
+
+    /// What the voice may be told: the name and description of every
+    /// effector that has a description. Nothing else about them leaves the
+    /// charter.
+    pub fn effectors_for_the_voice(&self) -> Vec<(String, String)> {
+        self.effectors
+            .iter()
+            .filter(|e| !e.describe.is_empty())
+            .map(|e| (e.name.clone(), e.describe.clone()))
+            .collect()
     }
 }
 
@@ -1044,11 +1069,13 @@ per_window = 3600 2
 impact = 0.1
 reversible = true
 cleared = weapons attention power trust abandonment
+describe = store one memory in her own store
 
 [effector obc.speak]
 impact = 0.2
 reversible = false
 cleared = weapons power
+describe = say something in the city, where others read it
 
 [effector obc.build]
 impact = 0.6
@@ -1106,11 +1133,45 @@ rule = require_human irreversible
     }
 
     #[test]
+    fn the_voice_is_told_names_and_descriptions_and_nothing_else() {
+        let c = charter();
+        let told = c.effectors_for_the_voice();
+        assert_eq!(
+            told.len(),
+            2,
+            "obc.build has no describe line and is not offered"
+        );
+        assert_eq!(told[0].0, "wave.remember");
+        assert!(told[0].1.contains("store one memory"));
+        let flat = format!("{told:?}").to_lowercase();
+        for secret in ["impact", "reversible", "cleared", "weapons", "0.1"] {
+            assert!(!flat.contains(secret), "the voice was told {secret:?}");
+        }
+        let v1 = CHARTER
+            .replace("describe = store one memory in her own store\n", "")
+            .replace(
+                "describe = say something in the city, where others read it\n",
+                "",
+            );
+        assert!(
+            Charter::parse(&v1).is_ok(),
+            "a v1 file without describe still reads"
+        );
+    }
+
+    #[test]
     fn the_charter_refuses_what_it_does_not_understand() {
         let bad = [
             (
-                CHARTER.replace("kwave-charter 1", "kwave-charter 2"),
+                CHARTER.replace("kwave-charter 1", "kwave-charter 3"),
                 "newer",
+            ),
+            (
+                CHARTER.replace(
+                    "describe = store one memory in her own store",
+                    "describe = a\ndescribe = b",
+                ),
+                "twice",
             ),
             (CHARTER.replace("impact = 0.1", "impact = 1.5"), "[0, 1]"),
             (

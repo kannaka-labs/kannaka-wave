@@ -17,7 +17,7 @@
 //! recall, speak.
 
 use crate::http::{json_quote, json_string_field, post_json, HttpError};
-use crate::{Encoder, Facet, Recalled, Substrate, Voice};
+use crate::{Encoder, Facet, Proposed, Recalled, Substrate, Voice};
 use std::time::Duration;
 
 /// Most characters of a prompt that survive reduction to a question.
@@ -31,6 +31,12 @@ pub const MIN_PROPOSAL_WORDS: usize = 5;
 
 /// The token the model returns when it has no honest connection to propose.
 pub const NO_PROPOSAL: &str = "NONE";
+
+/// The line an action proposal starts with: `PROPOSE <effector> <confidence>`.
+pub const PROPOSE_TOKEN: &str = "PROPOSE";
+
+/// Most words an action proposal's text may have.
+pub const MAX_ACTION_WORDS: usize = 120;
 
 /// The charter the voice speaks under. Short, and about honesty rather than
 /// personality: the personality is in the weights, trained from her words.
@@ -187,6 +193,125 @@ impl OllamaVoice {
     }
 }
 
+impl OllamaVoice {
+    /// The prompt for an action proposal, after an answer: the question, the
+    /// memories that were recalled, the answer given, and the effectors by
+    /// name and description only. The voice is asked for exactly one action
+    /// or `NONE`, and told that a proposal is a request a person will read,
+    /// not a thing that will happen.
+    pub fn propose_action_prompt(
+        question: &str,
+        answer: &str,
+        facets: &[Recalled],
+        effectors: &[(String, String)],
+    ) -> String {
+        let mut p = String::from(
+            "You have just answered a question from your memories. Now decide whether there is \
+             ONE action worth proposing. A proposal is a request a person will read and decide \
+             on; nothing you write here happens by itself. Propose only an action the memories \
+             and the answer actually call for, through one of these effectors, and only if you \
+             would stand behind it. Otherwise write exactly NONE.\n\nEffectors:\n",
+        );
+        for (name, describe) in effectors {
+            p.push_str(&format!("- {name}: {}\n", one_line(describe)));
+        }
+        p.push_str("\nMemories recalled:\n");
+        if facets.is_empty() {
+            p.push_str("(none)\n");
+        }
+        for (i, r) in facets.iter().enumerate() {
+            p.push_str(&format!("{}. {}\n", i + 1, one_line(&r.text)));
+        }
+        p.push_str(&format!(
+            "\nQuestion: {}\nYour answer: {}\n\nReply in exactly this form and nothing else:\n\
+             PROPOSE <effector> <confidence between 0 and 1>\n<what to do, in plain words, under \
+             {MAX_ACTION_WORDS} words>\nor\nNONE\n\nReply:",
+            one_line(question),
+            one_line(answer)
+        ));
+        p
+    }
+
+    /// Ask the model for an action proposal. `None` when it declined, failed,
+    /// or replied in a form [`parse_proposal`] does not accept. With no
+    /// effectors to offer, the model is not asked.
+    pub fn propose_action_with(
+        &self,
+        question: &str,
+        answer: &str,
+        facets: &[Recalled],
+        effectors: &[(String, String)],
+    ) -> Option<Proposed> {
+        self.propose_action_raw(question, answer, facets, effectors)
+            .1
+    }
+
+    /// As [`propose_action_with`](Self::propose_action_with), also returning
+    /// the model's reply verbatim (empty when it was not asked; the error
+    /// line when it failed), so a declined or malformed reply can be seen
+    /// rather than inferred.
+    pub fn propose_action_raw(
+        &self,
+        question: &str,
+        answer: &str,
+        facets: &[Recalled],
+        effectors: &[(String, String)],
+    ) -> (String, Option<Proposed>) {
+        if effectors.is_empty() {
+            return (String::new(), None);
+        }
+        let prompt = Self::propose_action_prompt(question, answer, facets, effectors);
+        match self.generate(&prompt) {
+            Ok(text) => {
+                let p = parse_proposal(&text);
+                (text, p)
+            }
+            Err(e) => (format!("{VOICE_ERROR_PREFIX} {e})"), None),
+        }
+    }
+}
+
+/// Parse an action proposal. Pure, strict, and it does no judging: an
+/// effector the charter never granted, or a confidence outside `[0, 1]`, is
+/// passed through for the rails to refuse **on the record**, because a voice
+/// naming an effector it was not offered is a thing the audit should show.
+/// Only the *form* is checked: the first non-empty line is
+/// `PROPOSE <effector> <confidence>`, the rest is the action, non-empty and
+/// under [`MAX_ACTION_WORDS`] words. `NONE`, or anything else, is no proposal.
+pub fn parse_proposal(text: &str) -> Option<Proposed> {
+    let mut lines = text.lines().map(str::trim).filter(|l| !l.is_empty());
+    let head = lines.next()?;
+    if head.to_ascii_uppercase().starts_with(NO_PROPOSAL) {
+        return None;
+    }
+    let mut words = head.split_whitespace();
+    if words.next()?.to_ascii_uppercase() != PROPOSE_TOKEN {
+        return None;
+    }
+    let effector = words
+        .next()?
+        .trim_matches(|c: char| c == '`' || c == '"' || c == '\'')
+        .to_string();
+    let confidence: f32 = words
+        .next()?
+        .trim_matches(|c: char| !c.is_ascii_digit() && c != '.' && c != '-')
+        .parse()
+        .ok()?;
+    if words.next().is_some() {
+        return None;
+    }
+    let action = one_line(&lines.collect::<Vec<_>>().join(" "));
+    let n = action.split_whitespace().count();
+    if n == 0 || n > MAX_ACTION_WORDS {
+        return None;
+    }
+    Some(Proposed {
+        effector,
+        action,
+        confidence,
+    })
+}
+
 fn one_line(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
@@ -211,6 +336,16 @@ impl Voice for OllamaVoice {
         }
         let text = self.generate(&Self::propose_prompt(parents)).ok()?;
         accept_proposal(&text, parents)
+    }
+
+    fn propose_action(
+        &self,
+        question: &str,
+        answer: &str,
+        facets: &[Recalled],
+        effectors: &[(String, String)],
+    ) -> Option<Proposed> {
+        self.propose_action_with(question, answer, facets, effectors)
     }
 }
 
@@ -375,6 +510,107 @@ mod tests {
         );
         let long = "?".repeat(1000);
         assert_eq!(question_of(&long).chars().count(), MAX_QUESTION_CHARS);
+    }
+
+    fn recalled(text: &str) -> Recalled {
+        Recalled {
+            id: Id(9),
+            text: text.into(),
+            via: None,
+            similarity: 0.7,
+            resonance: None,
+        }
+    }
+
+    #[test]
+    fn the_action_prompt_offers_names_and_descriptions_and_no_charter_facts() {
+        let effectors = vec![
+            ("wave.remember".to_string(), "store one memory".to_string()),
+            (
+                "obc.speak".to_string(),
+                "say something in the city".to_string(),
+            ),
+        ];
+        let mk = || {
+            OllamaVoice::propose_action_prompt(
+                "what shipped?",
+                "The fireflies piece shipped.",
+                &[recalled("the fireflies piece is finished")],
+                &effectors,
+            )
+        };
+        let p = mk();
+        assert!(p.contains("- wave.remember: store one memory"));
+        assert!(p.contains("- obc.speak: say something in the city"));
+        assert!(p.contains("the fireflies piece is finished"));
+        assert!(p.contains("PROPOSE <effector>"));
+        for word in ["impact", "reversible", "cleared", "refusal"] {
+            assert!(!p.to_lowercase().contains(word), "prompt leaks {word:?}");
+        }
+        assert_eq!(p, mk(), "same inputs, same bytes");
+    }
+
+    #[test]
+    fn parse_proposal_accepts_the_form_and_only_the_form() {
+        let p = parse_proposal(
+            "PROPOSE wave.remember 0.8\nRemember that the fireflies piece\nis finished.\n",
+        )
+        .unwrap();
+        assert_eq!(p.effector, "wave.remember");
+        assert_eq!(p.confidence, 0.8);
+        assert_eq!(p.action, "Remember that the fireflies piece is finished.");
+        // Judged by the rails, not here: an ungranted effector and a bad
+        // confidence pass through so the audit shows them.
+        let p = parse_proposal("propose `wallet.transfer` 1.7\neverything").unwrap();
+        assert_eq!(p.effector, "wallet.transfer");
+        assert_eq!(p.confidence, 1.7);
+        for none in [
+            "NONE",
+            "none, nothing to do",
+            "",
+            "PROPOSE wave.remember\nno confidence",
+            "PROPOSE wave.remember 0.8",
+            "PROPOSE wave.remember 0.8 extra\naction",
+            "I would propose remembering this.",
+            "PROPOSE wave.remember abc\naction",
+        ] {
+            assert!(
+                parse_proposal(none).is_none(),
+                "{none:?} should be no proposal"
+            );
+        }
+        let long = format!(
+            "PROPOSE wave.remember 0.9\n{}",
+            "word ".repeat(MAX_ACTION_WORDS + 1)
+        );
+        assert!(parse_proposal(&long).is_none());
+    }
+
+    #[test]
+    fn propose_action_asks_once_and_passes_the_reply_through_the_parser() {
+        let (port, seen) = serve_once(leak(ok(
+            r#"{"model":"m","response":"PROPOSE wave.remember 0.75\nRemember that the vault moved.","done":true}"#,
+        )));
+        let v = OllamaVoice::new("127.0.0.1", port, "m");
+        let effectors = vec![("wave.remember".to_string(), "store one memory".to_string())];
+        let p = v
+            .propose_action(
+                "where is the vault?",
+                "It moved.",
+                &[recalled("the vault moved")],
+                &effectors,
+            )
+            .expect("a proposal");
+        assert_eq!(p.effector, "wave.remember");
+        assert_eq!(p.confidence, 0.75);
+        assert_eq!(p.action, "Remember that the vault moved.");
+        assert!(seen
+            .join()
+            .unwrap()
+            .contains("wave.remember: store one memory"));
+        // With no effectors offered, the model is not even asked.
+        let quiet = OllamaVoice::new("127.0.0.1", 1, "m");
+        assert!(quiet.propose_action("q?", "a", &[], &[]).is_none());
     }
 
     #[test]
