@@ -63,9 +63,11 @@ experience → facets → substrate → dream (consolidate, propose, forget)
   harness, the raw rows and the report are in `experiments/e001/`.
 - `docs/lineage/` — what that decision moved out of the build, kept whole: the
   `10000.00001` number system as a tested type.
-- `docs/experiments/E-003`, `E-004` — the bridge operator at the conscience boundary,
-  and whether surprise picks what to remember. Pre-registered, not yet run; both are
-  now unblocked.
+- `docs/experiments/E-003` — the bridge operator at the conscience boundary.
+  **Declined** on a pre-run check: the registered residue is the constant 0.190983 for
+  every action (`experiments/e003/`).
+- `docs/experiments/E-004` — whether surprise picks what to remember. Pre-registered,
+  not yet run, unblocked.
 
 ```sh
 cargo test

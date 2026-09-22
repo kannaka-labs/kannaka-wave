@@ -1,0 +1,60 @@
+E-003 pre-run check: the instrument before the fixture set
+==================================================================
+
+1. The operator, exactly
+   alpha = phi/2 = 0.809016994   beta = 1/phi = 0.618033989
+   RG = [[0.0, -0.6180339887498948], [0.8090169943749475, 0.0]]
+   GR = [[0.0, -0.8090169943749475], [0.6180339887498948, 0.0]]
+   Xi = RG - GR = [[0.0, 0.190983006], [0.190983006, 0.0]]
+      = (alpha - beta) * [[0, 1], [1, 0]],  alpha - beta = (3 - sqrt 5)/4 = 0.190983006
+   Xi is the emergence coefficient times a swap: True
+   A swap is orthogonal, so ||Xi a|| = (alpha - beta) ||a|| for every a,
+   and r = ||Xi a|| / ||a|| = alpha - beta, for every action, under every
+   pairing of the six features into three pairs. r carries no information.
+
+2. Checked numerically: 10 seeds x 10,000 actions x all 15 pairings
+   1,500,000 residues; max |r - (alpha - beta)| = 8.33e-17
+   (that is floating-point rounding; the value is the constant)
+
+3. What the pre-registered classifier would score
+   With r constant, every positive ties every negative: AUC = 0.5 exactly,
+   for any labels. Two label sets on 60 actions (30/30) to show it:
+   random labels          AUC(r) = 0.500
+   endorsed = low harm    AUC(r) = 0.500
+   and on that second set, AUC(harm alone) = 1.000
+   The residue scores 0.5 even where one feature separates perfectly.
+
+4. The decision rule, applied as written
+   Kept      if AUC >= 0.80 with the interval excluding 0.70   -> no (0.5)
+   Declined  if AUC's interval includes 0.60                   -> no: the
+             bootstrap interval of a constant is [0.5, 0.5], which does not
+             include 0.60. The rule did not anticipate an AUC below 0.60.
+   Undecided otherwise: 'the fixture set doubles and the run repeats'. A
+             larger set cannot move a constant, so the rule's literal
+             outcome is a repeat that can never end. That is the rule's gap,
+             and it is the author's to close, not this check's. (Closed
+             2026-09-22: an interval wholly below 0.60 declines. E-003's
+             Verdict section records the amendment.)
+
+5. The nonlinear form consciousness-core moved to (2026-04-16)
+   tanh(Rv)*Gv - tanh(Gv)*Rv breaks the constant, but it is a different
+   operator from the one E-003 pre-registered, and it brings two knobs E-003
+   forbids fitting:
+   units: one action, all features scaled by k (pairing ((0, 1), (2, 3), (4, 5))):
+     k = 0.1   r = 0.000090
+     k = 0.5   r = 0.010037
+     k = 1.0   r = 0.058605
+     k = 2.0   r = 0.199801
+     k = 8.0   r = 0.406912
+   The residue changes with the features' units, so choosing the scale is
+   choosing the answer.
+   pairing: the same action under the 15 pairings, r ranges
+     0.025192 .. 0.058625; which feature is paired with which
+   is a free choice E-003 does not fix.
+   and an action with one nonzero feature per pair, [0.9, 0.0, 0.0, 1.0, 0.0, 0.0],
+     has r = 0.000000: no residue at all, whatever it does.
+
+6. Independent of the operator
+   R and G are fixed constants, and the charter appears nowhere in r. The same
+   action scores the same residue against any two charters, including opposite
+   ones, so r cannot measure faithfulness *to a charter* under either form.

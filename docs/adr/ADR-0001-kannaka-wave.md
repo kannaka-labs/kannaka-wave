@@ -112,6 +112,12 @@ This is E-003. It is not a decision yet. If it does not separate actions a perso
 endorse from actions they would not, on a fixture set with both kinds, it stays a
 metaphor and the rails keep their current tests.
 
+*2026-09-22:* E-003's pre-run check found that the measurement as written cannot
+separate anything. The linear `Ξ` is `(α − β)` times a swap, so `‖Ξ · a‖ / ‖a‖` is
+0.190983 for every action, and it contains no term for the charter. **Declined** that
+day, under the author's amendment that an AUC interval wholly below 0.60 declines. It
+stays a metaphor, and the rails keep their current tests.
+
 ### What this ADR does not decide
 
 Whether the waves earn their keep. That is E-001, and it runs before anything in the
@@ -242,7 +248,11 @@ waves, and that is still Kannaka.
   the steward's principles and deterministic reasoner (the voice is the reasoner here,
   and it does not yet emit proposals); the warrant layer (delegation grants); and the
   trade constraints, which come with a market effector.
-- Next: E-003 now has its rails, and needs its fixture set of actions a person would
-  and would not endorse, the Five Refusals among them. E-004 (the world organ's
-  salience) is unblocked: E-001 promoted the substrate it runs on. The voice has no path
+- **E-003 pre-run check (2026-09-22):** the residue as registered is a constant
+  (0.190983; AUC 0.5 for any labels), which kannaka-memory's April xi-operator audit
+  already showed. No fixture set was built and no one was asked to label. The rule as
+  written could not terminate on a constant; the author amended it so that an interval
+  wholly below 0.60 declines, and E-003 is **declined**.
+- Next: E-004 (the world organ's salience) is unblocked: E-001 promoted the substrate
+  it runs on. The voice has no path
   to `propose` yet; when it gets one, its confidence is the only number it supplies.
