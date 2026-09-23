@@ -58,6 +58,28 @@ of the training targets) with a paired bootstrap interval excluding zero. On
 the noise stream it does not (0.0988 against 0.0628); on the predictable
 stream it does (0.0015 against 0.0589). The collapse floor stays at ⅓.
 
+## From the bus to the harness
+
+```sh
+# 1. the world stream: one or more query_messages dumps of KANNAKA.events.memory.>
+python3 export.py --dump mem-a.json --dump mem-b.json --day1 2026-09-23 --days 30 \
+    --exclude-agent grid-colony-one --out events.jsonl        # summary on stderr; the dump stays out of git
+# 2. the labels
+python3 labels.py e007 --events events.jsonl --recalls recall-dump.json --out labels-e007.json
+python3 labels.py e004 --events events.jsonl --readings ../../../assay/readings --dump mem-all.json \
+    --out labels-e004.json --probes probes.json
+# 3. embed, train, run, report
+harness/target/release/e004-harness prepare --events events.jsonl --cache vectors.bin --probes probes.json
+harness/target/release/e004-harness run --events events.jsonl --cache vectors.bin --arm U --seed 1 --cap N \
+    --labels <(python3 -c 'import json;print(json.dumps(json.load(open("labels-e007.json"))["labels"]))') --probes probes.json --out runs/U-1.json
+python3 report.py --runs runs/
+```
+
+Each label file carries the sha256 of its sorted keys, which the report records
+as the frozen set. `export.py` prints the per-day counts and what the exclusion
+removed; `labels.py e007` lists the ten most frequent query hashes and their
+share, for the poller trap; `labels.py e004` lists every citation's verdict.
+
 ## Inputs, when the windows close
 
 - `events.jsonl`: the world stream, one event per line in bus order,
