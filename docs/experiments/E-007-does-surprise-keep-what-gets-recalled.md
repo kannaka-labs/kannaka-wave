@@ -90,3 +90,25 @@ kept.
 - **Self-recall.** A daemon recalling its own agent's memories on behalf of a local tool is
   still a use; the event does not distinguish askers, and this experiment does not pretend it
   can.
+
+## Log
+
+Append-only. Nothing here changes the decision rule, the guards or the scored set.
+
+**2026-09-25 (day 3): the window is open and, as things stand, every run will be void.**
+Census: `experiments/e004/results/census-e007-2026-09-25.txt`.
+
+- The first `.recall` event landed 2026-09-22T22:47:19Z, so by the rule above day 1 is
+  2026-09-23, day 30 is 2026-10-22, and labels freeze 2026-11-05.
+- All 997 `.recall` events so far come from `grid-colony-one`, which Amendment 1 excludes.
+  Every other daemon was denied publishing the event by the `serve` user's NATS ACL. That
+  fix is kannaka-memory#1056, and it takes effect at the hub's next config reload.
+- Even after the reload, the scored set also needs `remember` events from the agents that
+  serve recalls. Only the `kannaka remember` CLI publishes those. In days 1–3, the 21
+  remember events came from two agents (`agent-1a6bb2ee`, `agent-acd3e2ed`), and neither
+  serves recall.
+- The guard "at least 20 recalled-later events, or the run is void and the window slides
+  forward a week at a time" already covers this, so no amendment is made. For a window to
+  qualify, some non-excluded agent must both publish remembers and serve recalls. Which
+  agent should do that, and through which path, is the author's decision. It is not settled
+  here.

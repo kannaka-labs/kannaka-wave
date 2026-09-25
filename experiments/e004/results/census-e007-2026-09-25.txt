@@ -1,0 +1,26 @@
+E-007 day-3 census, 2026-09-25. Aggregates only: the raw export is memory content and is not committed.
+Source: nats ninja-portal MCP query_messages on KANNAKA.events.memory.*.recall and
+KANNAKA.events.memory.*.remember, in windows under the 500-message cap.
+
+window (per the spec): first .recall event 2026-09-22T22:47:19Z (grid-colony-one, via daemon)
+  -> day 1 = 2026-09-23, day 30 = 2026-10-22, labels freeze 2026-11-05
+
+.recall events 2026-09-22T22:47Z..2026-09-25T21:30Z: 997 (pages of 500 + 497)
+  by agent: grid-colony-one 997 (100%), every one via "daemon"
+  by UTC day: 09-22 20 | 09-23 391 | 09-24 298 | 09-25 288
+  top query_sha256 in the first 500: 28, 24, 19, 17, 16 events (5 hashes = 21%)
+
+.remember events 2026-09-23..2026-09-25: 21
+  by agent: agent-1a6bb2ee 12 (daily city intel + column), agent-acd3e2ed 9 (fc-03/04/05 memory counts)
+  grid-colony-one 0, Kannaka 0, kannaka-prime 0, skywave 0, kannaka-witness-01 0
+
+agents that published >= 1 .recall in the window: {grid-colony-one}   (excluded by Amendment 1)
+scored events so far (held-out remembers from those agents, after the exclusion): 0 by construction
+
+why only one agent publishes .recall: the `serve` NATS user (config/nats-accounts.conf) had no publish
+  permission on KANNAKA.events.memory.*.recall; every daemon on a scoped identity had its event dropped
+  server-side while publish_event returned Ok. grid-colony-one connects as anon (KANNAKA.events.> allowed).
+  Probe: a recall to KANNAKA.recall.kannaka-prime (0.16.12) at 21:36Z was answered; no event followed.
+  Shadow validator on the old config: serve -> ...recall = deny. Fix: kannaka-memory#1056 (needs a hub reload).
+why the remember stream is thin: only `kannaka remember` (src/bin/kannaka.rs:2162) publishes MemoryRemember;
+  memories written by other paths (agent loop, dreams, absorb) never reach the bus.
