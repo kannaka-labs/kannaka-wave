@@ -65,7 +65,7 @@ stream it does (0.0015 against 0.0589). The collapse floor stays at ⅓.
 ```sh
 # 1. the world stream: one or more query_messages dumps of KANNAKA.events.memory.>
 python3 export.py --dump mem-a.json --dump mem-b.json --day1 2026-09-23 --days 30 \
-    --exclude-agent grid-colony-one \
+    --exclude-agent grid-colony-one --exclude-agent e2e1067 \
     --store kannaka-prime=/path/to/prime-store-copy \
     --out events.jsonl        # summary on stderr; the dump and events.jsonl stay out of git
 # 2. the labels

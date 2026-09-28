@@ -130,3 +130,6 @@ Census: `experiments/e004/results/census-e007-2026-09-25.txt`.
   text, how many were resolved, and how many were mismatched, missing, or had no
   store. Prime's content stays off the bus.
 - The decision rule, guards, window, label rule and scored set are unchanged.
+
+**2026-09-28 (day 6): test events leaked into the window, excluded before any labelling.**
+While verifying kannaka-memory#1068, a manual check published four test `remember` events to the live bus under a made-up agent id, `e2e1067`, via cli, with content "alpha harbor", "beta pier", "gamma live" and "delta copy": KANNAKA_MEMORY_EVENTS seq 5097–5100, ts about 1790601983–1790601998. They are not real memories. That agent serves no recall, so it is outside E-007's scored set anyway, but the events sit in the shared world stream on a training day. The export therefore excludes the agent (`--exclude-agent e2e1067`, alongside Amendment 1's `grid-colony-one`). This entry is written before any labels exist and before the window closes. It is data hygiene for a known artifact, not a change to any rule.
