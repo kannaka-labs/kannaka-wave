@@ -112,3 +112,21 @@ Census: `experiments/e004/results/census-e007-2026-09-25.txt`.
   qualify, some non-excluded agent must both publish remembers and serve recalls. Which
   agent should do that, and through which path, is the author's decision. It is not settled
   here.
+
+**2026-09-28 (day 6): remember events can now come from every write path. This entry is plumbing only; the rules are unchanged.**
+
+- kannaka-memory#1066 (7a7477a, closes #1057) makes every write path publish
+  `.remember`: agent, chat, dream, absorb, sync, import, perception, as well as
+  the CLI. This takes effect on each host once it runs a release that contains
+  the change and its daemons have restarted. Non-CLI writes publish ids only:
+  `memory_id` and `content_sha256`, with no text.
+- kannaka-prime's `.recall` events are live from seq 5079 on, so prime is a
+  serving agent. The remember side of the scored set therefore depends on
+  prime's upgrade.
+- `experiments/e004/export.py` resolves the text of ids-only events by
+  `memory_id` from a read-only copy of the agent's store, taken at export time
+  (`--store AGENT=PATH`). It uses the text only if its SHA-256 matches the
+  event's `content_sha256`. It reports per agent how many events had inline
+  text, how many were resolved, and how many were mismatched, missing, or had no
+  store. Prime's content stays off the bus.
+- The decision rule, guards, window, label rule and scored set are unchanged.
