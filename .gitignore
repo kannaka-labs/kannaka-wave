@@ -2,3 +2,6 @@ target/
 Cargo.lock
 __pycache__/
 *.pyc
+# E-004/E-007 exports hold memory content: local only, never committed
+experiments/e004/events*.jsonl
+experiments/e004/store-*.json

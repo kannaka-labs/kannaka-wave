@@ -41,6 +41,8 @@ jobs:
           key=lambda p:(p['class'],round(p['persistence'],6),p['evidence_level'],tuple((c['name'],c['passed']) for c in p['behavioral_capabilities']))
           assert sorted(map(key,a))==sorted(map(key,b)), 'architecture/wave-registry.json is stale: rebuild it with registry.py'
           "
+      - name: e004 export resolves ids-only remember events (stdlib tests, stub kannaka)
+        run: python3 -m unittest discover -s experiments/e004 -p 'test_*.py' -v
       - name: no dependencies yet, on purpose
         run: |
           set -eu

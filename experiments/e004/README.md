@@ -12,6 +12,8 @@ day is data.
 | file | role |
 |---|---|
 | `harness/` | Rust. Links `kannaka-wave` (the substrate E-001 promoted, the facet decomposer, the encoder client, ADR-0040's operator with `Drive::Error`) and `consciousness-core` (E-001's Φ instrument). `selftest` runs the guards on synthetic streams. `prepare` embeds every event, facet and probe once into one cache. `train` fits the predictor and applies the adoption rule. `run` is one seed of one arm: absorb days 21–30 with a dream per day, then the E-007 survival numbers, the E-004 recall@10 numbers, and Φ. |
+| `export.py` | A bus dump becomes `events.jsonl`. Text for ids-only remember events (kannaka-memory#1066) is resolved by `memory_id` from a store copy and verified by `content_sha256`. Tests are in `test_export.py`. |
+| `labels.py` | The E-007 and E-004 ground truths, each frozen with a hash. |
 | `report.py` | Means, standard errors, Welch intervals, the guards, and each experiment's decision rule applied verbatim (E-004 with Amendments 1 and 2; E-007 with its exit from the undecided branch). Checked against fixture runs shaped Kept, Declined, Undecided, Void and guard-failed. |
 | `results/census-2026-09-22.txt` | The bus census that found the retired window and the missing ground truth. |
 
@@ -63,7 +65,9 @@ stream it does (0.0015 against 0.0589). The collapse floor stays at ⅓.
 ```sh
 # 1. the world stream: one or more query_messages dumps of KANNAKA.events.memory.>
 python3 export.py --dump mem-a.json --dump mem-b.json --day1 2026-09-23 --days 30 \
-    --exclude-agent grid-colony-one --out events.jsonl        # summary on stderr; the dump stays out of git
+    --exclude-agent grid-colony-one \
+    --store kannaka-prime=/path/to/prime-store-copy \
+    --out events.jsonl        # summary on stderr; the dump and events.jsonl stay out of git
 # 2. the labels
 python3 labels.py e007 --events events.jsonl --recalls recall-dump.json --out labels-e007.json
 python3 labels.py e004 --events events.jsonl --readings ../../../assay/readings --dump mem-all.json \
@@ -75,6 +79,61 @@ harness/target/release/e004-harness run --events events.jsonl --cache vectors.bi
 python3 report.py --runs runs/
 ```
 
+### Ids-only remember events: resolving the text from a store copy
+
+Since kannaka-memory#1066 every write path publishes
+`KANNAKA.events.memory.<agent>.remember`, not only `kannaka remember`. Only the
+CLI (`via=cli`) carries `content` by default. Every other origin (agent, chat,
+dream, absorb, sync, import, perception, ...) publishes at the `ids` level:
+`memory_id`, `agent_id`, `importance`, `modality`, `via`, `content_sha256`, and no
+text, because the memory lane is readable by `anon`. kannaka-prime's writes are
+all of this kind, and its memories are not published in clear on purpose. So the
+exporter resolves the text by `memory_id` from a copy of the agent's store, on
+the export host, at export time:
+
+1. On the host that serves the agent, take a read-only copy of its store dir at
+   export time. For kannaka-prime on O1, that is `/home/opc/.kannaka`. Copy it when no dream or save is running; if the copy fails to load, take it again. At least
+   `kannaka.hrm` (and `.encoder`) is needed: `cp -a /home/opc/.kannaka/kannaka.hrm
+   /home/opc/.kannaka/.encoder /tmp/prime-store-copy/`. Never pass the live dir;
+   the exporter refuses the current user's `~/.kannaka`.
+2. Run `export.py` there with `--store kannaka-prime=/tmp/prime-store-copy`
+   (repeat `--store` once per agent). Use `--kannaka /path/to/kannaka` if the
+   binary is not on `PATH`; it must be able to read that store, so use the host's
+   own binary. The exporter runs `kannaka export-json --slim` once per store,
+   builds an id → text map, and uses it only for events that lack `content`.
+   It runs kannaka with `KANNAKA_READONLY=1` and remember events off, against a
+   scratch data dir that holds only a symlink to the copy's `.hrm`. The scratch
+   dir is there because a store's `config.toml` carries an absolute `hrm.path`,
+   and the CLI prefers that over `KANNAKA_DATA_DIR`. Pointing kannaka at the
+   copy directly would read the live store.
+3. Alternatively, save that command's stdout on the host
+   (`KANNAKA_DATA_DIR=<scratch dir> KANNAKA_READONLY=1 kannaka export-json --slim
+   > store-kannaka-prime.json`) and pass `--store-json kannaka-prime=store-kannaka-prime.json`.
+   That file is memory content: it stays out of git, and so does `events.jsonl`,
+   which now holds resolved text (both are in `.gitignore`).
+4. Delete the store copy and any `store-*.json` once `events.jsonl` is written.
+
+**Verification.** A resolved text is used only if the SHA-256 of its UTF-8 bytes,
+untrimmed, equals the event's `content_sha256`. That is kannaka's own
+`remember_events::content_sha256`, computed over the stored content. This check
+guards against a store copy that has drifted from the event, for example a
+memory rewritten after it was published, or a copy of the wrong store. Such an
+event is counted as `hash_mismatch` and left out; it is never given the wrong text.
+
+**The summary** (stderr) reports, per agent, where every remember event in the
+window got its text: `inline` (the event carried it), `resolved_by_id`,
+`hash_mismatch`, `unresolved_missing` (the id is not in the copy: pruned,
+forgotten, or the copy predates the event), `skipped_no_store` (ids-only, and no
+store given for that agent), `unverifiable_no_hash`, and `empty_text`. Anything
+outside the first two triggers a warning line. Nothing is dropped silently.
+Each exported event carries `text_source: "inline" | "store"`.
+
+This is plumbing. It changes which events have text, not any decision rule,
+guard, window or label. The tests are in `test_export.py`:
+`python3 -m unittest discover -s experiments/e004 -p 'test_*.py'`. They use a
+stub `kannaka`; set `E004_REAL_KANNAKA=/path/to/kannaka` to add a round trip
+through a real binary on a throwaway store in a temp dir.
+
 Each label file carries the sha256 of its sorted keys, which the report records
 as the frozen set. `export.py` prints the per-day counts and what the exclusion
 removed; `labels.py e007` lists the ten most frequent query hashes and their
@@ -84,9 +143,9 @@ share, for the poller trap; `labels.py e004` lists every citation's verdict.
 
 - `events.jsonl`: the world stream, one event per line in bus order,
   `{"key": "<subject>#<seq>", "agent", "day": 1..30, "text"}`, with
-  `grid-colony-one` already excluded (Amendment 1). The export script is
-  written when the window closes; the raw export is memory content and is not
-  committed. The census file shows what an export's aggregates look like.
+  `grid-colony-one` already excluded (Amendment 1). Ids-only events have their
+  text resolved from a store copy (above). The raw export and `events.jsonl`
+  are memory content and are not committed. The census file shows what an export's aggregates look like.
 - `labels-e007.json`: keys recalled later, from `.recall` events, two distinct
   query hashes within 14 days. `labels-e004.json` / `probes.json`: verified
   citations (`bus_cite.py`, `VERIFIED` only) and their settlement-side
