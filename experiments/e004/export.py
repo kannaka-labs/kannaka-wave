@@ -45,6 +45,16 @@ store copy that has drifted from the event (the memory was rewritten, or the
 copy is of the wrong store) therefore cannot put the wrong text in the
 stream. The per-agent counts go in the summary; nothing is dropped silently.
 
+Recall events (E-007). The same dumps may hold
+`KANNAKA.events.memory.<agent>.recall` events. With `--recalls-out FILE`
+they are written as one row per line, ids and hashes only (no query, no
+content, exactly what the event carries), with a `caller_class` column
+appended: who asked, as far as the payload can tell (see `caller_class`).
+`--caller-hints FILE` is a JSON object {query_sha256: class} for the operator
+who knows their own probe queries; a hint wins over the heuristic. The
+per-agent class counts go in the summary either way. No day window is
+applied to recall rows: the E-007 label window runs 14 days past day 30.
+
 The summary on stderr is the aggregate the record keeps (per-day counts, what
 the exclusion removed); the dump itself is memory content and stays out of
 the repository. Standard library only.
@@ -200,6 +210,137 @@ def day_index(ts_ms: int, day1: dt.date) -> int:
     return (d - day1).days + 1
 
 
+# Who asked for a daemon-served recall, as far as the event can say.
+CALLER_CLASSES = ("observatory", "responder", "operator-probe", "unknown")
+
+# The columns of a recall row, in order; `caller_class` is appended last.
+RECALL_COLUMNS = ("key", "agent", "ts", "day", "query_sha256", "top_k", "memory_ids", "similarities", "via",
+                  "caller_class")
+
+
+def caller_class(event: dict, hints: dict[str, str] | None = None) -> str:
+    """Classify who requested a `.recall` event, from its payload alone.
+
+    `event` is the recall event's payload (or the whole bus message; `payload`
+    is used if present). The publisher is `kannaka swarm serve`'s recall
+    responder (kannaka-memory `src/bin/handlers/swarm.rs`, the
+    `EventPayload::MemoryRecall` publish; `src/nats.rs` serialises it) and the
+    payload carries: `agent_id`, `memory_ids`, `similarities`, `top_k`,
+    `query_sha256`, `via` (always `"daemon"`, there is one publisher), plus
+    the envelope's `event_id`, `schema_version`, `ts`. It does NOT carry the
+    requester, the reply inbox, or the query. So the class is inferred from
+    `top_k`, the one field the requester chooses, against what each known
+    requester sends (as of 2026-09-29):
+
+      requester                                   top_k
+      hand probes with the nats CLI (rollout)     1 or 2
+      kannaka-radio OBC responder                 5 (literal)
+      observatory, `kannaka recall --remote`      5 (the CLI default)
+      `kannaka swarm brief --peers`               5 (literal)
+      command-center MCP `recall` tool            10 (default; caller-settable 1..100)
+      any request that omits top_k                8 (the daemon's default)
+
+    Precedence: hint table > payload heuristic > "unknown".
+
+    1. `hints` maps a lower-case hex `query_sha256` to a class. If the
+       event's hash is in it, that class is returned, whatever `top_k` says.
+       This is the only way `observatory` and `responder` are ever assigned:
+       an operator who knows the observatory's fixed query text (or their own
+       probe text) hashes it (SHA-256 of the UTF-8 bytes of the query string
+       exactly as sent: for the responder that is "<sender>: <dm text[:300]>")
+       and tags it.
+    2. `top_k` in {1, 2, 10} -> "operator-probe". 1 and 2: no known automated
+       requester sends these; the rollout and verification probes did. 10: the
+       command-center MCP `recall` tool's default, and that tool is only ever
+       driven by an operator. This is the one defeasible rule here: a caller
+       who sets topK to 10 by hand would be misfiled. It is kept because
+       Kannaka asked for operator MCP probes to be tagged, and the request
+       shape is the only signal they leave.
+    3. Everything else -> "unknown". In particular `top_k == 5` is a
+       three-way collision (responder, observatory, `brief --peers`) that
+       `agent_id` cannot break: the responder's target agent is configurable
+       and the observatory's is kannaka-prime, so a kannaka-prime/5 event is
+       either, and a non-prime/5 event is the responder or a brief. Any other
+       value (8 = top_k omitted, or a caller-chosen number) says nothing about
+       who asked.
+
+    Ambiguity is returned as "unknown", never resolved by guessing.
+    """
+    p = event.get("payload") if isinstance(event.get("payload"), dict) else event
+    if hints:
+        h = str(p.get("query_sha256") or "").strip().lower()
+        if h and h in hints:
+            return hints[h]
+    top_k = p.get("top_k")
+    if isinstance(top_k, str) and top_k.strip().isdigit():
+        top_k = int(top_k)
+    if isinstance(top_k, bool) or not isinstance(top_k, int):
+        return "unknown"  # the daemon serialises a usize; anything else is not its top_k
+    if top_k in (1, 2, 10):
+        return "operator-probe"
+    return "unknown"
+
+
+def load_caller_hints(path: Path) -> dict[str, str]:
+    """`--caller-hints FILE`: a JSON object {query_sha256: class}. Keys are
+    lower-cased; a key that is not 64 hex characters (someone pasted the query
+    instead of its hash) or a class outside CALLER_CLASSES is refused."""
+    d = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(d, dict):
+        raise SystemExit(f"[export] {path}: expected a JSON object of query_sha256 -> class")
+    out = {}
+    for k, v in d.items():
+        h = str(k).strip().lower()
+        if len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
+            raise SystemExit(f"[export] {path}: {k!r} is not a hex sha256 (hash the query text, do not paste it)")
+        if v not in CALLER_CLASSES:
+            raise SystemExit(f"[export] {path}: {k[:12]}...: class {v!r} not in {CALLER_CLASSES}")
+        out[h] = v
+    return out
+
+
+def export_recalls(rows: list[dict], day1: dt.date, exclude: set[str],
+                   hints: dict[str, str] | None = None) -> tuple[list[dict], dict]:
+    """The `.recall` events in bus order -> (recall rows, per-agent class
+    counts). --exclude-agent applies (by agent_id, as for remember events); no
+    day window does, `day` is informational and may lie outside 1..--days."""
+    recalls = []
+    by_agent: dict[str, dict[str, int]] = {}
+    excluded = 0
+    for m in rows:
+        subject = str(m.get("subject", ""))
+        if not subject.endswith(".recall") or ".events.memory." not in subject:
+            continue
+        p = m.get("payload") or {}
+        agent = str(p.get("agent_id") or (subject.split(".")[3] if subject.count(".") >= 4 else ""))
+        if agent in exclude:
+            excluded += 1
+            continue
+        cls = caller_class(p, hints)
+        counts = by_agent.setdefault(agent, dict.fromkeys(CALLER_CLASSES, 0))
+        counts[cls] += 1
+        recalls.append({
+            "key": f"{subject}#{m['seq']}",
+            "agent": agent,
+            "ts": int(m["ts"]),
+            "day": day_index(int(m["ts"]), day1),
+            "query_sha256": p.get("query_sha256"),
+            "top_k": p.get("top_k"),
+            "memory_ids": list(p.get("memory_ids") or []),
+            "similarities": list(p.get("similarities") or []),
+            "via": p.get("via"),
+            "caller_class": cls,
+        })
+    summary = {
+        "events": len(recalls),
+        "excluded_by_agent": excluded,
+        "hinted": sum(1 for r in recalls if hints and str(r["query_sha256"] or "").lower() in hints),
+        "callers": {a: by_agent[a] for a in sorted(by_agent)},
+        "callers_total": {c: sum(v[c] for v in by_agent.values()) for c in CALLER_CLASSES},
+    }
+    return recalls, summary
+
+
 def export(rows: list[dict], day1: dt.date, days: int, exclude: set[str],
            store: StoreTexts | None = None) -> tuple[list[dict], dict]:
     events = []
@@ -279,19 +420,32 @@ def main() -> int:
     ap.add_argument("--kannaka", default=os.environ.get("KANNAKA_BIN", "kannaka"),
                     help="the kannaka binary used for --store (default: $KANNAKA_BIN or kannaka on PATH)")
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--recalls-out", type=Path, default=None, metavar="FILE",
+                    help="also write the .recall events in the dumps, one row per line, with caller_class")
+    ap.add_argument("--caller-hints", type=Path, default=None, metavar="FILE",
+                    help="JSON {query_sha256: class} tagging known queries; overrides the top_k heuristic")
     a = ap.parse_args()
     day1 = dt.date.fromisoformat(a.day1)
     store = StoreTexts(parse_pairs(a.store, "--store"), parse_pairs(a.store_json, "--store-json"), a.kannaka)
+    hints = load_caller_hints(a.caller_hints) if a.caller_hints else None
     rows = load_dumps(a.dump)
     events, summary = export(rows, day1, a.days, set(a.exclude_agent), store)
     if store.unused():
         summary["stores_unused"] = store.unused()
+    recalls, recall_summary = export_recalls(rows, day1, set(a.exclude_agent), hints)
+    summary["recalls"] = recall_summary
     with a.out.open("w", encoding="utf-8") as f:
         for e in events:
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
+    if a.recalls_out is not None:
+        with a.recalls_out.open("w", encoding="utf-8") as f:
+            for r in recalls:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
     print(json.dumps(summary, indent=1), file=sys.stderr)
     for agent, c in summary["text"].items():
         print(f"[export] {agent}: " + ", ".join(f"{k}={c[k]}" for k in COUNTERS), file=sys.stderr)
+    for agent, c in recall_summary["callers"].items():
+        print(f"[export] {agent} recalls: " + ", ".join(f"{k}={c[k]}" for k in CALLER_CLASSES), file=sys.stderr)
     lost = {k: v for k, v in summary["text_total"].items() if k not in ("inline", "resolved_by_id") and v}
     if lost:
         print(f"[export] WARNING: remember events in the window without usable text: {lost}", file=sys.stderr)
