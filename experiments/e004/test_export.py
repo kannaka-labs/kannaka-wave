@@ -220,21 +220,17 @@ PROBE_Q = "rollout probe"
 
 
 def hints() -> dict:
-    return {ex.content_sha256(OBSERVATORY_Q): "observatory", ex.content_sha256(RESPONDER_Q): "responder"}
+    return {ex.content_sha256(OBSERVATORY_Q): "observatory", ex.content_sha256(RESPONDER_Q): "responder",
+            ex.content_sha256(PROBE_Q): "operator-probe"}
 
 
 class CallerClass(unittest.TestCase):
-    """caller_class: hint table > top_k heuristic > unknown. One test per class, the override, the collision."""
+    """caller_class: hint table > unknown, no payload heuristic. One test per class, the override, the collision."""
 
-    def test_operator_probe_from_top_k_1_or_2(self):
-        self.assertEqual(ex.caller_class(recall_ev(1, "kannaka-prime", 1)["payload"]), "operator-probe")
-        self.assertEqual(ex.caller_class(recall_ev(2, "kannaka-prime", 2)["payload"]), "operator-probe")
-        self.assertEqual(ex.caller_class(recall_ev(9, "kannaka-prime", 10)["payload"]), "operator-probe",
-                         "the command-center MCP recall tool's default topK is 10")
-        self.assertEqual(ex.caller_class(recall_ev(3, "kannaka-prime", "2")["payload"]), "operator-probe",
-                         "a numeric string is still the number")
-        self.assertEqual(ex.caller_class(recall_ev(4, "kannaka-prime", 1)), "operator-probe",
-                         "the whole bus message is accepted too")
+    def test_top_k_alone_never_classifies(self):
+        for top_k in (1, 2, 10):
+            self.assertEqual(ex.caller_class(recall_ev(1, "kannaka-prime", top_k)["payload"]), "unknown",
+                             "operator-probe comes only from the hint table")
 
     def test_observatory_only_via_hint(self):
         e = recall_ev(1, "kannaka-prime", 5, query=OBSERVATORY_Q)["payload"]
@@ -250,7 +246,7 @@ class CallerClass(unittest.TestCase):
                          "responder")
 
     def test_unknown(self):
-        for top_k in (8, 100, 0, -1, None, "many", 5.5, 1.0):
+        for top_k in (1, 2, 8, 10, 100, 0, -1, None, "many", 5.5, 1.0):
             self.assertEqual(ex.caller_class(recall_ev(1, "kannaka-prime", top_k)["payload"]), "unknown", top_k)
         self.assertEqual(ex.caller_class(recall_ev(2, "kannaka-prime", 8, drop_top_k=True)["payload"]), "unknown")
         self.assertEqual(ex.caller_class({}), "unknown")
@@ -259,14 +255,14 @@ class CallerClass(unittest.TestCase):
 
     def test_hint_overrides_heuristic(self):
         e = recall_ev(1, "kannaka-prime", 1, query=RESPONDER_Q)["payload"]
-        self.assertEqual(ex.caller_class(e), "operator-probe")
+        self.assertEqual(ex.caller_class(e), "unknown")
         self.assertEqual(ex.caller_class(e, hints()), "responder")
         h = {ex.content_sha256(PROBE_Q).upper(): "operator-probe"}
         self.assertEqual(ex.caller_class(recall_ev(2, "kannaka-prime", 8, query=PROBE_Q)["payload"],
                                          ex.load_caller_hints(self._write(h))), "operator-probe",
                          "hint keys are matched case-insensitively once loaded")
         self.assertEqual(ex.caller_class(recall_ev(3, "kannaka-prime", 1, query="unhinted")["payload"], hints()),
-                         "operator-probe", "a hint table that does not mention the hash changes nothing")
+                         "unknown", "a hint table that does not mention the hash changes nothing")
 
     def test_top_k_5_collision_is_unknown(self):
         # responder (5), observatory via `kannaka recall --remote` (CLI default 5) and
@@ -311,7 +307,7 @@ class RecallExport(unittest.TestCase):
         self.assertEqual([r["key"].rsplit("#", 1)[1] for r in recalls], ["10", "11", "12", "13", "14", "16"])
         self.assertTrue(all(tuple(r) == ex.RECALL_COLUMNS for r in recalls), "column order is fixed, caller_class last")
         self.assertEqual([r["caller_class"] for r in recalls],
-                         ["observatory", "responder", "operator-probe", "unknown", "operator-probe", "unknown"])
+                         ["observatory", "responder", "operator-probe", "unknown", "unknown", "unknown"])
         r = recalls[0]
         self.assertEqual((r["agent"], r["ts"], r["day"], r["top_k"], r["via"]), ("kannaka-prime", TS, 2, 5, "daemon"))
         self.assertEqual(r["memory_ids"], ["m-heron", "m-uni"])
@@ -320,11 +316,11 @@ class RecallExport(unittest.TestCase):
             self.assertNotIn(k, r)
         self.assertEqual(s["events"], 6)
         self.assertEqual(s["excluded_by_agent"], 1)
-        self.assertEqual(s["hinted"], 2)
+        self.assertEqual(s["hinted"], 3)
         self.assertEqual(s["callers"]["kannaka-prime"],
-                         {"observatory": 1, "responder": 1, "operator-probe": 2, "unknown": 1})
+                         {"observatory": 1, "responder": 1, "operator-probe": 1, "unknown": 2})
         self.assertEqual(s["callers"]["peer-b"], {"observatory": 0, "responder": 0, "operator-probe": 0, "unknown": 1})
-        self.assertEqual(s["callers_total"], {"observatory": 1, "responder": 1, "operator-probe": 2, "unknown": 2})
+        self.assertEqual(s["callers_total"], {"observatory": 1, "responder": 1, "operator-probe": 1, "unknown": 3})
         self.assertEqual(sum(s["callers_total"].values()), 6, "every kept recall lands in exactly one class")
 
     def test_no_window_and_no_hints(self):
@@ -332,7 +328,7 @@ class RecallExport(unittest.TestCase):
         self.assertEqual(len(recalls), 7, "recall rows are never dropped by the day window")
         self.assertTrue(all(r["day"] < 1 for r in recalls))
         self.assertEqual(s["hinted"], 0)
-        self.assertEqual(s["callers_total"], {"observatory": 0, "responder": 0, "operator-probe": 3, "unknown": 4})
+        self.assertEqual(s["callers_total"], {"observatory": 0, "responder": 0, "operator-probe": 0, "unknown": 7})
 
     def test_remember_export_unchanged_by_recall_events(self):
         events, summary = ex.export(self.rows(), DAY1, 30, set())
@@ -353,7 +349,7 @@ class RecallExport(unittest.TestCase):
             lines = [json.loads(l) for l in (t / "recalls.jsonl").read_text().splitlines()]
             self.assertEqual(len(lines), 6)
             self.assertEqual(list(lines[0]), list(ex.RECALL_COLUMNS))
-            self.assertIn("[export] kannaka-prime recalls: observatory=1, responder=1, operator-probe=2, unknown=1",
+            self.assertIn("[export] kannaka-prime recalls: observatory=1, responder=1, operator-probe=1, unknown=2",
                           r.stderr)
             self.assertIn('"recalls"', r.stderr)
             self.assertEqual(len((t / "events.jsonl").read_text().splitlines()), 1)
@@ -362,7 +358,7 @@ class RecallExport(unittest.TestCase):
                                 "--day1", DAY1.isoformat(), "--out", str(t / "events2.jsonl")],
                                capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
-            self.assertIn("[export] grid-colony-one recalls: observatory=0, responder=0, operator-probe=1, unknown=0",
+            self.assertIn("[export] grid-colony-one recalls: observatory=0, responder=0, operator-probe=0, unknown=1",
                           r.stderr)
             self.assertFalse((t / "recalls2.jsonl").exists())
 

@@ -240,7 +240,7 @@ def caller_class(event: dict, hints: dict[str, str] | None = None) -> str:
       command-center MCP `recall` tool            10 (default; caller-settable 1..100)
       any request that omits top_k                8 (the daemon's default)
 
-    Precedence: hint table > payload heuristic > "unknown".
+    Precedence: hint table > "unknown". There is no payload heuristic.
 
     1. `hints` maps a lower-case hex `query_sha256` to a class. If the
        event's hash is in it, that class is returned, whatever `top_k` says.
@@ -249,20 +249,14 @@ def caller_class(event: dict, hints: dict[str, str] | None = None) -> str:
        probe text) hashes it (SHA-256 of the UTF-8 bytes of the query string
        exactly as sent: for the responder that is "<sender>: <dm text[:300]>")
        and tags it.
-    2. `top_k` in {1, 2, 10} -> "operator-probe". 1 and 2: no known automated
-       requester sends these; the rollout and verification probes did. 10: the
-       command-center MCP `recall` tool's default, and that tool is only ever
-       driven by an operator. This is the one defeasible rule here: a caller
-       who sets topK to 10 by hand would be misfiled. It is kept because
-       Kannaka asked for operator MCP probes to be tagged, and the request
-       shape is the only signal they leave.
-    3. Everything else -> "unknown". In particular `top_k == 5` is a
-       three-way collision (responder, observatory, `brief --peers`) that
-       `agent_id` cannot break: the responder's target agent is configurable
-       and the observatory's is kannaka-prime, so a kannaka-prime/5 event is
-       either, and a non-prime/5 event is the responder or a brief. Any other
-       value (8 = top_k omitted, or a caller-chosen number) says nothing about
-       who asked.
+    2. Everything else -> "unknown". The column never guesses from `top_k`:
+       `top_k = 5` is a three-way collision (responder, observatory, `brief
+       --peers`) that `agent_id` cannot break; 1 and 2 were the hand probes
+       and 10 is the MCP tool's default, but both are caller-settable. `top_k`
+       is its own column in the row, so a reader can apply any heuristic they
+       like and say so. The report's column stays conservative (Kannaka,
+       2026-09-29): observatory, responder and operator-probe come only from
+       the hint table.
 
     Ambiguity is returned as "unknown", never resolved by guessing.
     """
@@ -271,13 +265,6 @@ def caller_class(event: dict, hints: dict[str, str] | None = None) -> str:
         h = str(p.get("query_sha256") or "").strip().lower()
         if h and h in hints:
             return hints[h]
-    top_k = p.get("top_k")
-    if isinstance(top_k, str) and top_k.strip().isdigit():
-        top_k = int(top_k)
-    if isinstance(top_k, bool) or not isinstance(top_k, int):
-        return "unknown"  # the daemon serialises a usize; anything else is not its top_k
-    if top_k in (1, 2, 10):
-        return "operator-probe"
     return "unknown"
 
 

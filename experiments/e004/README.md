@@ -146,11 +146,7 @@ runs 14 days past day 30. The summary carries per-agent counts per class
 (`recalls.callers`), and stderr gets one `<agent> recalls: ...` line per agent.
 
 Its limits are the event's. The payload does not name the requester, so the
-class is read off `top_k`, the one field the requester chooses: `1` or `2` is
-`operator-probe` (the hand-sent rollout probes; no automated caller sends
-these), and so is `10`, the command-center MCP `recall` tool's default, on the
-grounds that only an operator drives that tool (a caller who sets topK to 10
-by hand would be misfiled; this is the one defeasible rule). Everything else is `unknown` by default, and `top_k = 5` in particular
+column never guesses from `top_k`: `1`/`2` were the hand probes and `10` is the MCP tool's default, but both are caller-settable, and `5` is a three-way collision (responder, observatory, `brief --peers`). Everything unhinted is `unknown`, and `top_k` is its own column so a reader can apply and state any heuristic they like Everything else is `unknown` by default, and `top_k = 5` in particular
 is a three-way collision that `agent_id` cannot break: the radio responder
 sends 5, `kannaka recall --remote` (the observatory's call) defaults to 5, and
 `swarm brief --peers` sends 5. `10` is the MCP recall tool's default and has no
