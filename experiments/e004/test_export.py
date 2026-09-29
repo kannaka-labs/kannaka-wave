@@ -392,5 +392,21 @@ class RealKannaka(unittest.TestCase):
                              "the store copy is not written")
 
 
+
+class RealHintTable(unittest.TestCase):
+    """hints/kannaka-prime-2026-09-29.json: every .recall event kannaka-prime had served by 2026-09-28
+    (8 events, seq 4948-5112), all rollout probes or Kannaka's one MCP call. Hashes only, no query text."""
+
+    def test_loads_and_classifies(self):
+        path = Path(__file__).with_name("hints") / "kannaka-prime-2026-09-29.json"
+        hints = ex.load_caller_hints(path)
+        self.assertEqual(len(hints), 8)
+        self.assertTrue(all(v == "operator-probe" for v in hints.values()))
+        ev = recall_ev(5112, "kannaka-prime", 2)
+        ev["payload"]["query_sha256"] = "d2c3b2e2a316385d54fd47be888efa17abc223ceea00319531ee0d2a74fd7a0e"  # seq 5112
+        self.assertEqual(ex.caller_class(ev["payload"], hints), "operator-probe")
+        self.assertEqual(ex.caller_class(recall_ev(9999, "kannaka-prime", 5)["payload"], hints), "unknown",
+                         "a ninth prime event not in the table is the first organic recall, and stays unknown")
+
 if __name__ == "__main__":
     unittest.main()
