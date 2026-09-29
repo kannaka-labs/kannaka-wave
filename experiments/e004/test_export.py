@@ -395,18 +395,23 @@ class RealKannaka(unittest.TestCase):
 
 class RealHintTable(unittest.TestCase):
     """hints/kannaka-prime-2026-09-29.json: every .recall event kannaka-prime had served by 2026-09-28
-    (8 events, seq 4948-5112), all rollout probes or Kannaka's one MCP call. Hashes only, no query text."""
+    (8 events, seq 4948-5112), all rollout probes or Kannaka's one MCP call, plus the E-007 Amendment 1
+    precondition probe of 2026-09-29, hashed and tagged before it was sent. Hashes only, no query text."""
 
     def test_loads_and_classifies(self):
         path = Path(__file__).with_name("hints") / "kannaka-prime-2026-09-29.json"
         hints = ex.load_caller_hints(path)
-        self.assertEqual(len(hints), 8)
+        self.assertEqual(len(hints), 9)
         self.assertTrue(all(v == "operator-probe" for v in hints.values()))
         ev = recall_ev(5112, "kannaka-prime", 2)
         ev["payload"]["query_sha256"] = "d2c3b2e2a316385d54fd47be888efa17abc223ceea00319531ee0d2a74fd7a0e"  # seq 5112
         self.assertEqual(ex.caller_class(ev["payload"], hints), "operator-probe")
+        probe = recall_ev(9999, "kannaka-prime", 5)
+        probe["payload"]["query_sha256"] = "c9c86422995183ad68000aacd0b59399b5bfc7f71c3f87b7fcf930ba3990f301"  # E-007 A1 precondition probe
+        self.assertEqual(ex.caller_class(probe["payload"], hints), "operator-probe",
+                         "the observatory-path precondition probe is tagged before it is sent")
         self.assertEqual(ex.caller_class(recall_ev(9999, "kannaka-prime", 5)["payload"], hints), "unknown",
-                         "a ninth prime event not in the table is the first organic recall, and stays unknown")
+                         "a prime event not in the table is the first organic recall, and stays unknown")
 
 if __name__ == "__main__":
     unittest.main()
