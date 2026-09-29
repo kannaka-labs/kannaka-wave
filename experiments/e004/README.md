@@ -134,6 +134,33 @@ guard, window or label. The tests are in `test_export.py`:
 stub `kannaka`; set `E004_REAL_KANNAKA=/path/to/kannaka` to add a round trip
 through a real binary on a throwaway store in a temp dir.
 
+### Recall events and `caller_class` (E-007)
+
+`export.py --recalls-out recalls.jsonl` also writes the
+`KANNAKA.events.memory.<agent>.recall` events in the dumps, one row per line
+(`key, agent, ts, day, query_sha256, top_k, memory_ids, similarities, via`, no
+query and no content, exactly what `swarm serve` publishes), with a
+`caller_class` column appended: `observatory`, `responder`, `operator-probe` or
+`unknown`. No day window applies to these rows, since the E-007 label window
+runs 14 days past day 30. The summary carries per-agent counts per class
+(`recalls.callers`), and stderr gets one `<agent> recalls: ...` line per agent.
+
+Its limits are the event's. The payload does not name the requester, so the
+column never guesses from `top_k`: `1`/`2` were the hand probes and `10` is the MCP tool's default, but both are caller-settable, and `5` is a three-way collision (responder, observatory, `brief --peers`). The first real table is `hints/kannaka-prime-2026-09-29.json`: every `.recall` event kannaka-prime had served by 2026-09-28 (8 events, seq 4948–5112), all operator probes, from Kannaka. A ninth prime event not in it is the first organic recall. Everything unhinted is `unknown`, and `top_k` is its own column so a reader can apply and state any heuristic they like Everything else is `unknown` by default, and `top_k = 5` in particular
+is a three-way collision that `agent_id` cannot break: the radio responder
+sends 5, `kannaka recall --remote` (the observatory's call) defaults to 5, and
+`swarm brief --peers` sends 5. `10` is the MCP recall tool's default and has no
+class here. So `observatory` and `responder` are only ever assigned through
+`--caller-hints hints.json`, a JSON object `{query_sha256: class}` for an
+operator who knows the query text (the observatory's fixed question, or their
+own probes): hash the query string exactly as sent, SHA-256 of its UTF-8 bytes
+(`content_sha256()` in `export.py` computes the same thing; the responder's
+string is `"<sender>: <dm text[:300]>"`), and tag it. A hint wins over the
+heuristic. The classifier is `caller_class()` in `export.py`, and its docstring
+is the record of which requester sent what on 2026-09-29; when a requester
+changes its `top_k`, that table is what to update. The column is descriptive:
+it changes no label, rule or guard.
+
 Each label file carries the sha256 of its sorted keys, which the report records
 as the frozen set. `export.py` prints the per-day counts and what the exclusion
 removed; `labels.py e007` lists the ten most frequent query hashes and their

@@ -202,6 +202,167 @@ class Resolution(unittest.TestCase):
             ex.StoreTexts({"a": Path("x")}, {"a": Path("y")})
 
 
+def recall_ev(seq: int, agent: str, top_k, query: str = "what is the weather", ids=("m-heron", "m-uni"),
+              drop_top_k=False) -> dict:
+    """A `.recall` event as `swarm serve` publishes it (kannaka-memory nats.rs, EventPayload::MemoryRecall):
+    ids and scores, top_k, the query's sha256, via=daemon, and the envelope. Never the query or content."""
+    p = {"agent_id": agent, "memory_ids": list(ids), "similarities": [0.81, 0.64][:len(ids)],
+         "query_sha256": ex.content_sha256(query), "via": "daemon",
+         "event_id": f"r{seq}", "schema_version": "1.0", "ts": TS}
+    if not drop_top_k:
+        p["top_k"] = top_k
+    return {"subject": f"KANNAKA.events.memory.{agent}.recall", "seq": seq, "ts": TS, "payload": p}
+
+
+OBSERVATORY_Q = "what has kannaka been thinking about"
+RESPONDER_Q = "Nick: hey kannaka, what's playing?"
+PROBE_Q = "rollout probe"
+
+
+def hints() -> dict:
+    return {ex.content_sha256(OBSERVATORY_Q): "observatory", ex.content_sha256(RESPONDER_Q): "responder",
+            ex.content_sha256(PROBE_Q): "operator-probe"}
+
+
+class CallerClass(unittest.TestCase):
+    """caller_class: hint table > unknown, no payload heuristic. One test per class, the override, the collision."""
+
+    def test_top_k_alone_never_classifies(self):
+        for top_k in (1, 2, 10):
+            self.assertEqual(ex.caller_class(recall_ev(1, "kannaka-prime", top_k)["payload"]), "unknown",
+                             "operator-probe comes only from the hint table")
+
+    def test_observatory_only_via_hint(self):
+        e = recall_ev(1, "kannaka-prime", 5, query=OBSERVATORY_Q)["payload"]
+        self.assertEqual(ex.caller_class(e, hints()), "observatory")
+        self.assertEqual(ex.caller_class(e), "unknown", "the CLI default top_k=5 alone proves nothing")
+
+    def test_responder_only_via_hint(self):
+        e = recall_ev(1, "kannaka-prime", 5, query=RESPONDER_Q)["payload"]
+        self.assertEqual(ex.caller_class(e, hints()), "responder")
+        self.assertEqual(ex.caller_class(e), "unknown")
+        # The responder's target agent is configurable; a hint still names it.
+        self.assertEqual(ex.caller_class(recall_ev(2, "other-agent", 5, query=RESPONDER_Q)["payload"], hints()),
+                         "responder")
+
+    def test_unknown(self):
+        for top_k in (1, 2, 8, 10, 100, 0, -1, None, "many", 5.5, 1.0):
+            self.assertEqual(ex.caller_class(recall_ev(1, "kannaka-prime", top_k)["payload"]), "unknown", top_k)
+        self.assertEqual(ex.caller_class(recall_ev(2, "kannaka-prime", 8, drop_top_k=True)["payload"]), "unknown")
+        self.assertEqual(ex.caller_class({}), "unknown")
+        self.assertEqual(ex.caller_class(recall_ev(3, "kannaka-prime", True)["payload"]), "unknown",
+                         "bool is not a top_k")
+
+    def test_hint_overrides_heuristic(self):
+        e = recall_ev(1, "kannaka-prime", 1, query=RESPONDER_Q)["payload"]
+        self.assertEqual(ex.caller_class(e), "unknown")
+        self.assertEqual(ex.caller_class(e, hints()), "responder")
+        h = {ex.content_sha256(PROBE_Q).upper(): "operator-probe"}
+        self.assertEqual(ex.caller_class(recall_ev(2, "kannaka-prime", 8, query=PROBE_Q)["payload"],
+                                         ex.load_caller_hints(self._write(h))), "operator-probe",
+                         "hint keys are matched case-insensitively once loaded")
+        self.assertEqual(ex.caller_class(recall_ev(3, "kannaka-prime", 1, query="unhinted")["payload"], hints()),
+                         "unknown", "a hint table that does not mention the hash changes nothing")
+
+    def test_top_k_5_collision_is_unknown(self):
+        # responder (5), observatory via `kannaka recall --remote` (CLI default 5) and
+        # `swarm brief --peers` (5) are indistinguishable, for prime and for any other agent.
+        self.assertEqual(ex.caller_class(recall_ev(1, "kannaka-prime", 5)["payload"]), "unknown")
+        self.assertEqual(ex.caller_class(recall_ev(2, "some-peer", 5)["payload"]), "unknown")
+        self.assertEqual(ex.caller_class(recall_ev(3, "kannaka-prime", 5)["payload"], hints()), "unknown",
+                         "an unrelated hint table does not break the tie")
+
+    def _write(self, obj) -> Path:
+        t = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        self.addCleanup(os.unlink, t.name)
+        json.dump(obj, t)
+        t.close()
+        return Path(t.name)
+
+    def test_load_caller_hints_refuses_bad_input(self):
+        good = ex.load_caller_hints(self._write({ex.content_sha256(PROBE_Q).upper(): "operator-probe"}))
+        self.assertEqual(good, {ex.content_sha256(PROBE_Q): "operator-probe"})
+        with self.assertRaises(SystemExit):
+            ex.load_caller_hints(self._write({"rollout probe": "operator-probe"}))  # the text, not its hash
+        with self.assertRaises(SystemExit):
+            ex.load_caller_hints(self._write({ex.content_sha256(PROBE_Q): "mcp"}))  # not a class
+        with self.assertRaises(SystemExit):
+            ex.load_caller_hints(self._write([ex.content_sha256(PROBE_Q)]))
+
+
+class RecallExport(unittest.TestCase):
+    def rows(self) -> list[dict]:
+        return rows() + [
+            recall_ev(10, "kannaka-prime", 5, query=OBSERVATORY_Q),
+            recall_ev(11, "kannaka-prime", 5, query=RESPONDER_Q),
+            recall_ev(12, "kannaka-prime", 1, query=PROBE_Q),
+            recall_ev(13, "kannaka-prime", 5, query="a DM nobody tagged"),
+            recall_ev(14, "kannaka-prime", 10, query="mcp"),
+            recall_ev(15, "grid-colony-one", 2, query=PROBE_Q),
+            recall_ev(16, "peer-b", 5, query="brief topic"),
+        ]
+
+    def test_rows_columns_and_summary(self):
+        recalls, s = ex.export_recalls(self.rows(), DAY1, {"grid-colony-one"}, hints())
+        self.assertEqual([r["key"].rsplit("#", 1)[1] for r in recalls], ["10", "11", "12", "13", "14", "16"])
+        self.assertTrue(all(tuple(r) == ex.RECALL_COLUMNS for r in recalls), "column order is fixed, caller_class last")
+        self.assertEqual([r["caller_class"] for r in recalls],
+                         ["observatory", "responder", "operator-probe", "unknown", "unknown", "unknown"])
+        r = recalls[0]
+        self.assertEqual((r["agent"], r["ts"], r["day"], r["top_k"], r["via"]), ("kannaka-prime", TS, 2, 5, "daemon"))
+        self.assertEqual(r["memory_ids"], ["m-heron", "m-uni"])
+        self.assertEqual(r["query_sha256"], ex.content_sha256(OBSERVATORY_Q))
+        for k in ("query", "content", "results"):
+            self.assertNotIn(k, r)
+        self.assertEqual(s["events"], 6)
+        self.assertEqual(s["excluded_by_agent"], 1)
+        self.assertEqual(s["hinted"], 3)
+        self.assertEqual(s["callers"]["kannaka-prime"],
+                         {"observatory": 1, "responder": 1, "operator-probe": 1, "unknown": 2})
+        self.assertEqual(s["callers"]["peer-b"], {"observatory": 0, "responder": 0, "operator-probe": 0, "unknown": 1})
+        self.assertEqual(s["callers_total"], {"observatory": 1, "responder": 1, "operator-probe": 1, "unknown": 3})
+        self.assertEqual(sum(s["callers_total"].values()), 6, "every kept recall lands in exactly one class")
+
+    def test_no_window_and_no_hints(self):
+        recalls, s = ex.export_recalls(self.rows(), DAY1 + dt.timedelta(days=40), set(), None)
+        self.assertEqual(len(recalls), 7, "recall rows are never dropped by the day window")
+        self.assertTrue(all(r["day"] < 1 for r in recalls))
+        self.assertEqual(s["hinted"], 0)
+        self.assertEqual(s["callers_total"], {"observatory": 0, "responder": 0, "operator-probe": 0, "unknown": 7})
+
+    def test_remember_export_unchanged_by_recall_events(self):
+        events, summary = ex.export(self.rows(), DAY1, 30, set())
+        self.assertEqual([e["memory_id"] for e in events], ["m-cli"])
+        self.assertEqual(summary["not_remember"], 7)
+        self.assertNotIn("caller_class", events[0])
+
+    def test_cli_recalls_out_and_hints(self):
+        with tempfile.TemporaryDirectory() as t:
+            t = Path(t)
+            (t / "dump.json").write_text(json.dumps({"messages": self.rows()}))
+            (t / "hints.json").write_text(json.dumps(hints()))
+            r = subprocess.run([sys.executable, str(HERE / "export.py"), "--dump", str(t / "dump.json"),
+                                "--day1", DAY1.isoformat(), "--exclude-agent", "grid-colony-one",
+                                "--out", str(t / "events.jsonl"), "--recalls-out", str(t / "recalls.jsonl"),
+                                "--caller-hints", str(t / "hints.json")], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            lines = [json.loads(l) for l in (t / "recalls.jsonl").read_text().splitlines()]
+            self.assertEqual(len(lines), 6)
+            self.assertEqual(list(lines[0]), list(ex.RECALL_COLUMNS))
+            self.assertIn("[export] kannaka-prime recalls: observatory=1, responder=1, operator-probe=1, unknown=2",
+                          r.stderr)
+            self.assertIn('"recalls"', r.stderr)
+            self.assertEqual(len((t / "events.jsonl").read_text().splitlines()), 1)
+            # No --recalls-out: the file is not written, the summary still counts.
+            r = subprocess.run([sys.executable, str(HERE / "export.py"), "--dump", str(t / "dump.json"),
+                                "--day1", DAY1.isoformat(), "--out", str(t / "events2.jsonl")],
+                               capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("[export] grid-colony-one recalls: observatory=0, responder=0, operator-probe=0, unknown=1",
+                          r.stderr)
+            self.assertFalse((t / "recalls2.jsonl").exists())
+
+
 @unittest.skipUnless(os.environ.get("E004_REAL_KANNAKA"), "set E004_REAL_KANNAKA to run against a real binary")
 class RealKannaka(unittest.TestCase):
     """Builds a throwaway store in a temp dir with the real CLI, then resolves from a copy of it."""
@@ -230,6 +391,22 @@ class RealKannaka(unittest.TestCase):
             self.assertEqual(before, {p.name: p.read_bytes() for p in copy.iterdir() if p.is_file()},
                              "the store copy is not written")
 
+
+
+class RealHintTable(unittest.TestCase):
+    """hints/kannaka-prime-2026-09-29.json: every .recall event kannaka-prime had served by 2026-09-28
+    (8 events, seq 4948-5112), all rollout probes or Kannaka's one MCP call. Hashes only, no query text."""
+
+    def test_loads_and_classifies(self):
+        path = Path(__file__).with_name("hints") / "kannaka-prime-2026-09-29.json"
+        hints = ex.load_caller_hints(path)
+        self.assertEqual(len(hints), 8)
+        self.assertTrue(all(v == "operator-probe" for v in hints.values()))
+        ev = recall_ev(5112, "kannaka-prime", 2)
+        ev["payload"]["query_sha256"] = "d2c3b2e2a316385d54fd47be888efa17abc223ceea00319531ee0d2a74fd7a0e"  # seq 5112
+        self.assertEqual(ex.caller_class(ev["payload"], hints), "operator-probe")
+        self.assertEqual(ex.caller_class(recall_ev(9999, "kannaka-prime", 5)["payload"], hints), "unknown",
+                         "a ninth prime event not in the table is the first organic recall, and stays unknown")
 
 if __name__ == "__main__":
     unittest.main()
