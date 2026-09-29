@@ -91,6 +91,35 @@ kept.
   still a use; the event does not distinguish askers, and this experiment does not pretend it
   can.
 
+## E-007 Amendment 1 (2026-09-29, before any labels exist): a real consumer for prime, from a window start
+
+(This is E-007's own first amendment. "Amendment 1" elsewhere in this file means E-004's, which excludes grid-colony-one.)
+
+**Why.** The pre-registration says the recall daemons "serve the observatory, OBC and the radio" (lines 13-14). That was never true. SpaceChild's survey of 2026-09-29 (11 repos, read-only, plus 25 minutes of copies of live requests) found this:
+- The observatory recall panel and the radio DJ run the local `kannaka recall` CLI. It reads a local store and publishes nothing.
+- The OBC citizens recall on `KANNAKA.substrate.recall`, not `KANNAKA.recall.<agent>`.
+- Only two callers in the surveyed code reach `KANNAKA.recall.kannaka-prime`: the radio's OBC DM responder (at most 12 a day, and only when `RESPONDER_ENABLED=1`) and the command-center MCP recall tool, which operators use to probe. Hand-run `kannaka recall --remote`, `swarm brief --peers` and nats-CLI probes are a third path that no repo calls, and they are what the census saw.
+- Day 7's census: prime has served 8 recalls in its life (seq 4948-5112, all 2026-09-28 UTC), every one an operator probe or rollout check, and none on day 7.
+- The window's dominant recaller is not organic. On the O1 hub, connz shows `KANNAKA.recall.grid-colony-one` traffic coming from one python client named `kannaka-grid`. That is kannaka-grid on skywave querying its own colony mind on a timer: 12 requests in a 25-minute sample, 130-390 a day by the census (5-16 an hour averaged). E-004's Amendment 1 already excludes that agent. This records why that exclusion was right.
+
+**Precondition (from Agent Flaukowski, 09-29).** The host serving prime runs a release containing kannaka-memory#1072, so that `.recall` events are not dropped silently (#1071). Before day 1 of the window this amendment applies to, one deliberate recall through the observatory path must show up as its `.recall` event on the bus. That probe's query hash is added to the operator hint table first, so it is tagged as an operator probe and can never be mistaken for the first organic event or start a window early (a probe is a `.recall` event, and a window opens the day after the first one).
+
+**Change, effective at the start of the first window that opens after this amendment is merged AND kannaka-observatory#146 is deployed on the observatory host, confirmed by the precondition above. The current window is not touched.**
+1. The observatory recall panel (`GET /api/hrm/recall` in server.js) sends its query to `KANNAKA.recall.kannaka-prime` with `kannaka recall --remote --agent-id kannaka-prime`. Among the surveyed consumers it is the only one whose queries are typed by people who are not probing it, so it cannot be the poller shape named under Known traps. If the request fails, it falls back to the local CLI and logs the fallback without the query text. Fallback recalls publish no event, so they are simply not counted.
+2. The radio DJ stays on the local CLI. Its queries are semi-fixed: album names, plus the literal "consciousness resonance signal". Moving it would put exactly that poller into the ground truth.
+3. The OBC citizens stay on `substrate`. Moving them would change what they do, not just where they send it.
+4. The responder stays as it is. The report states whether `RESPONDER_ENABLED` was on during the window.
+
+**Reporting additions. The decision rule, the guards, the window and the label rule are unchanged.**
+- Recall events are tagged by caller class from a hint table the operator maintains (query hash -> class: observatory, responder, operator-probe). The event itself names no requester (kannaka-memory src/nats.rs:1705-1712), so anything not in the table is reported as unknown. The first table is `experiments/e004/hints/kannaka-prime-2026-09-29.json`: all eight of prime's recalls to date, tagged operator-probe.
+- Operator probes still COUNT toward recalled-later. The hint table tags; it does not exclude. That is the registered rule, and this amendment keeps it.
+- Kept-recalled is reported for all events and again with operator probes removed. The verdict is taken from all events, as registered. The second figure is shown so a reader can see how much of the ground truth was us.
+- The ten-most-frequent `query_sha256` table (Known traps) is also split by caller class.
+
+**Expected consequence, said in advance.** Human-typed volume on the observatory panel is low. The "at least 20 recalled-later events" guard may void the next window too, and the window then slides a week at a time as registered. A void run is the preferred outcome to inflating the ground truth with a fixed query.
+
+**Lines 13-14 correction.** They are left as written, since the registration is append-only. This amendment is the correction.
+
 ## Log
 
 Append-only. Nothing here changes the decision rule, the guards or the scored set.
@@ -142,3 +171,5 @@ While verifying kannaka-memory#1068, a manual check published four test `remembe
 - At the current rate, the guard "at least 20 recalled-later events" will void the run, and the window will slide. This is not an amendment. Whether organic recall traffic should reach prime at all, and from where (observatory, OBC, radio), is the author's decision. It is not settled here.
 - Radio `hear` writes, which would be prime's `via` `perception`, are still denied at the hub pending a config reload (kannaka-memory#1074). When they arrive they are ids-only, about 3.5k per day, and separable on (`agent_id`, `via`).
 - Method note: this census read the stream directly by sequence (`$JS.API.STREAM.MSG.GET`), seq 3211–5942 with no holes. The first `.recall` event matches the day-3 census exactly.
+
+**2026-09-29 (day 7): E-007 Amendment 1 recorded before any labels.** The survey found no organic consumer of prime. The observatory panel will be routed to prime from a window start, once Nick approves and kannaka-observatory#146 is deployed. The current window runs as registered, and the recalled-later guard is expected to void it.
