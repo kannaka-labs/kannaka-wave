@@ -1,0 +1,40 @@
+E-007 day-7 census, 2026-09-29. Aggregates only: no memory content is read or written.
+Source: direct JetStream reads, $JS.API.STREAM.MSG.GET.KANNAKA_MEMORY_EVENTS by sequence
+(the nats ninja-portal MCP was unavailable this session). Script: scratch, not committed; method below.
+scanned seq 3211..5942, holes 0
+first .recall: seq 3211 2026-09-22T22:47:19Z grid-colony-one  (matches the day-3 census)
+
+.recall events in window to date: 2048
+  by agent: grid-colony-one 2038, kannaka-prime 8, SpaceChild 2
+  by UTC day:
+    2026-09-22  grid-colony-one 20
+    2026-09-23  grid-colony-one 391
+    2026-09-24  grid-colony-one 298
+    2026-09-25  grid-colony-one 316
+    2026-09-26  grid-colony-one 351
+    2026-09-27  grid-colony-one 306
+    2026-09-28  SpaceChild 2, grid-colony-one 226, kannaka-prime 8
+    2026-09-29  grid-colony-one 130
+  kannaka-prime: 8 recalls, 8 distinct query_sha256, all on 09-28 (rollout checks)
+  top query_sha256 (all agents): 5cecd8ad62a2 82, 78b9502c4b9e 51, 8473a155bcee 43, b6310671c1b7 42, 61a51885d2fb 34, 86d077c16c85 30
+
+.remember events in window to date, by (agent, via, carries content):
+    0xSCADA-QE           via=?           content=yes  3
+    Kannaka              via=dream       content=no   2
+    SpaceChild           via=cli         content=yes  1
+    agent-1a6bb2ee       via=?           content=yes  22
+    agent-1a6bb2ee       via=cli         content=yes  4
+    agent-acd3e2ed       via=?           content=yes  15
+    agent-acd3e2ed       via=cli         content=yes  2
+    e2e1067              via=cli         content=yes  4
+    gossipghost-01       via=dream       content=no   8
+    grid-colony-one      via=cli         content=yes  359
+    kannaka-prime        via=dream       content=no   2
+    kannaka-prime        via=research    content=no   3
+    kannaka-witness-01   via=dream       content=no   3
+    kannaka-witness-01   via=perception  content=no   256
+  ('?' = event predates the via field, i.e. published by a pre-#1066 binary)
+
+agents that published >= 1 .recall in the window: SpaceChild, grid-colony-one, kannaka-prime
+  excluded: grid-colony-one (Amendment 1)
+  remaining: kannaka-prime (serves recall AND now publishes remember: research, dream), SpaceChild (2 test recalls)
