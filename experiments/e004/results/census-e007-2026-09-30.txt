@@ -44,7 +44,8 @@ prime's recall count from that point. ASK_LOG and PROMPT_ARM unset on every host
     gossipghost-01       via=dream       content=no   8
     grid-colony-one      via=cli         content=yes  608
     grid-colony-one      via=dream       content=no   1
-    kannaka-prime        via=cli         content=yes  37   (all on 09-30, new)
+    kannaka-prime        via=cli         content=yes  37   (radio track memos, server/index.js:194, via the CLI on O1;
+                                                       visible from the 00:51Z roll; 0 on 09-29 per the O1 journal)
     kannaka-prime        via=dream       content=no   2
     kannaka-prime        via=perception  content=no   381  (radio hear writes; first landed 09-29 after #1074)
     kannaka-prime        via=research    content=no   3
@@ -59,3 +60,5 @@ agents that published >= 1 .recall in the window: SpaceChild, grid-colony-one, k
   excluded: grid-colony-one (E-004 Amendment 1)
   remaining: kannaka-prime (serves recall; publishes remember via cli, research, dream, perception),
              SpaceChild (3 test recalls)
+
+Tease add-on (kannaka-radio#352 live 06:14Z): to 07:22Z, 1 tease delivered (brain path, 317 ms), 0 "[tease] stripped" lines (Kannaka).
