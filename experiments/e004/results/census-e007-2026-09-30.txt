@@ -1,0 +1,61 @@
+E-007 day-8 census, 2026-09-30 ~07:05Z. Aggregates only: no memory content is read or written.
+Source: direct JetStream reads, $JS.API.STREAM.MSG.GET.KANNAKA_MEMORY_EVENTS by sequence
+(same method as day 7; script: scratch, not committed).
+scanned seq 3211..7017, holes 0
+first .recall: seq 3211 2026-09-22T22:47:19Z grid-colony-one  (unchanged)
+
+Fleet: kannaka-memory v0.16.14 (tag a87f485, contains #1072) rolled 2026-09-30 00:33-00:51Z to
+kannaka-prime, witness-01, gossipghost-01, skywave, groundwave, Kannaka; SpaceChild's seat at 02:14Z;
+flaukowski 0.16.13, 0xSCADA-QE 0.16.12 (roster: Kannaka, 00:53Z). So prime's host runs a release
+containing #1072 from 00:51Z: a denied .recall event is loud and there is no silent floor on
+prime's recall count from that point. ASK_LOG and PROMPT_ARM unset on every host.
+
+.recall events in window to date: 2261
+  by agent: grid-colony-one 2236, kannaka-prime 22, SpaceChild 3
+  by UTC day:
+    2026-09-22  grid-colony-one 20
+    2026-09-23  grid-colony-one 391
+    2026-09-24  grid-colony-one 298
+    2026-09-25  grid-colony-one 316
+    2026-09-26  grid-colony-one 351
+    2026-09-27  grid-colony-one 306
+    2026-09-28  SpaceChild 2, grid-colony-one 226, kannaka-prime 8
+    2026-09-29  grid-colony-one 262, kannaka-prime 13
+    2026-09-30  SpaceChild 1, grid-colony-one 66, kannaka-prime 1   (to ~07:05Z)
+  kannaka-prime: 22 recalls, 9 distinct query_sha256, ALL 9 in the hint table
+  (experiments/e004/hints/kannaka-prime-2026-09-29.json, class operator-probe):
+    c9c86422 x14 (the A1 precondition probe: seq 6194/6196/6198, ten timing runs 6247-6258,
+                  and the post-roll probe seq 6585 at 00:51Z on 0.16.14), eight others x1 each (09-28).
+  => organic prime recalls to date: 0. SpaceChild's 3 are its own test recalls (2 on 09-28, 1 at
+     02:15Z today after the seat's upgrade, seq 6681).
+  top query_sha256 (all agents): 5cecd8ad62a2 88, 78b9502c4b9e 52, b6310671c1b7 45, 8473a155bcee 43,
+    4fa67d4fcbef 40, 61a51885d2fb 36, 6db3fa4e2503 32, 86d077c16c85 30, 91ea0fd35117 29, 15410359ea7d 28
+    (all grid-colony-one; the poller shape named under Known traps)
+
+.remember events in window to date, by (agent, via, carries content):
+    0xSCADA-QE           via=?           content=yes  3
+    Kannaka              via=dream       content=no   2
+    SpaceChild           via=cli         content=yes  1
+    agent-1a6bb2ee       via=?           content=yes  22
+    agent-1a6bb2ee       via=cli         content=yes  6
+    agent-acd3e2ed       via=?           content=yes  15
+    agent-acd3e2ed       via=cli         content=yes  2
+    e2e1067              via=cli         content=yes  4
+    gossipghost-01       via=dream       content=no   8
+    grid-colony-one      via=cli         content=yes  608
+    grid-colony-one      via=dream       content=no   1
+    kannaka-prime        via=cli         content=yes  37   (all on 09-30, new)
+    kannaka-prime        via=dream       content=no   2
+    kannaka-prime        via=perception  content=no   381  (radio hear writes; first landed 09-29 after #1074)
+    kannaka-prime        via=research    content=no   3
+    kannaka-witness-01   via=dream       content=no   5
+    kannaka-witness-01   via=perception  content=no   446
+  ('?' = event predates the via field)
+  perception separated, by day: prime 09-29 159, 09-30 222 (to ~07:05Z); witness 09-29 271, 09-30 80.
+  Day 8 so far (09-30, to ~07:05Z): prime cli 37, prime perception 222, grid cli 100, witness perception 80,
+  witness dream 1.
+
+agents that published >= 1 .recall in the window: SpaceChild, grid-colony-one, kannaka-prime
+  excluded: grid-colony-one (E-004 Amendment 1)
+  remaining: kannaka-prime (serves recall; publishes remember via cli, research, dream, perception),
+             SpaceChild (3 test recalls)
