@@ -45,7 +45,8 @@ prime's recall count from that point. ASK_LOG and PROMPT_ARM unset on every host
     grid-colony-one      via=cli         content=yes  608
     grid-colony-one      via=dream       content=no   1
     kannaka-prime        via=cli         content=yes  37   (radio track memos, server/index.js:194, via the CLI on O1;
-                                                       visible from the 00:51Z roll; 0 on 09-29 per the O1 journal)
+                                                       first at 04:22Z, from kannaka-radio#341 deployed 04:16Z —
+                                                       the modular server never stored tracks before that; NOT the roll)
     kannaka-prime        via=dream       content=no   2
     kannaka-prime        via=perception  content=no   381  (radio hear writes; first landed 09-29 after #1074)
     kannaka-prime        via=research    content=no   3
